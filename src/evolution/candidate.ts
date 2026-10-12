@@ -131,12 +131,15 @@ export async function validateCandidate(repoRoot: string, audit: string, raw: un
           saveAudit(audit, 'cleanup.json', cleanup);
         }
         saveAudit(audit, 'execution.json', redact(execution, secrets));
+        validation.containerCompilation = execution.stdout.includes(' RUN ') ? 'PASS' : 'FAIL';
+        validation.invariantTests = /Test Files[^\n]*\bfailed\b/.test(execution.stdout) ? 'FAIL' :
+          execution.stdout.includes('Test Files') ? 'PASS' : 'NOT_RUN';
         const marker = execution.stdout.split('\n').find(line => line.startsWith('CANDIDATE_RESULT='));
         if (!marker) throw new Error('Isolated validation failed before behavior evidence');
         const behavior = JSON.parse(marker.slice('CANDIDATE_RESULT='.length)) as Record<string, unknown>;
         validation.behaviorEvidence = behavior;
-        validation.invariantTests = execution.stdout.includes('Test Files') && !execution.stdout.includes('failed (') ? 'PASS' : 'FAIL';
-        if (behavior.sourceHash !== validation.candidatePolicyHash || !behavior.baselineHash || execution.exitCode || behavior.status !== 'PASS')
+        if (behavior.sourceHash !== validation.candidatePolicyHash || behavior.baselineHash !== digest(baselineJs) ||
+            validation.invariantTests !== 'PASS' || execution.exitCode || behavior.status !== 'PASS')
           throw new Error('Candidate behavior or safety checks failed');
         validation.behavior = 'PASS'; status = 'PASS';
       }

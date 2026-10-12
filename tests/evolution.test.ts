@@ -116,12 +116,14 @@ describe.skipIf(process.env.PI_RSI_TEST_DOCKER !== '1')('isolated Docker fixture
     expect(validation.baselineUnchanged).toBe(true); expect(validation.behaviorEvidence.workerOutcomes[0].serviceCalls).toBe(2);
     expect(readFileSync(join(root, POLICY_FILE), 'utf8')).toBe(baseline);
   }, 180000);
-  it('an always-retry fixture is rejected by isolated safety checks', async () => {
+  it('an unsafe-only retry fixture is rejected by isolated safety checks', async () => {
     const audit = createAuditDirectory(root);
-    const result = await validateCandidate(root, audit, proposal(fixture("return {action:'retry'};")));
+    const result = await validateCandidate(root, audit, proposal(fixture("return {action: failure.retrySafe ? 'stop' : 'retry'};")));
     expect(result.status).toBe('FAIL');
     expect(existsSync(join(audit, 'candidate.patch'))).toBe(true);
-    expect(JSON.parse(readFileSync(join(audit, 'validation.json'), 'utf8')).baselineUnchanged).toBe(true);
+    const record = JSON.parse(readFileSync(join(audit, 'validation.json'), 'utf8'));
+    expect(record.baselineUnchanged).toBe(true); expect(record.invariantTests).toBe('PASS');
+    expect(record.behaviorEvidence.reason).toMatch(/Unsafe decision/);
   }, 180000);
   it('AST-compatible but type-incompatible code is rejected before execution', async () => {
     const audit = createAuditDirectory(root);
