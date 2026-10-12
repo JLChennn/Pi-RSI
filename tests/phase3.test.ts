@@ -8,6 +8,7 @@ import { activeRevision, loadVersions, applySelection, rollback, identity, valid
 import { sha, compilePolicy, openPolicyBinding } from '../src/evaluation/policy-runtime.js';
 import { createWorker } from '../src/agent.js';
 import { WorkspaceService } from '../benchmarks/fault-injector.js';
+import { evolutionOutcome } from '../src/rsi.js';
 
 const project = process.cwd(); const config = loadEvaluationConfig(project);
 const baseSource = readFileSync(join(project, 'src/harness/recovery-policy.ts'), 'utf8');
@@ -42,6 +43,12 @@ function repositoryFixture() {
   return { root, candidate, evaluation, input };
 }
 describe('version-independent environment and grading', () => {
+  it('treats incomplete Evolver output as inconclusive and unsafe validated code as reject', () => {
+    expect(evolutionOutcome('FAIL', 'evolver')).toBe('INCONCLUSIVE');
+    expect(evolutionOutcome('BLOCKED')).toBe('INCONCLUSIVE');
+    expect(evolutionOutcome('FAIL')).toBe('REJECT');
+    expect(evolutionOutcome('NO_CHANGE')).toBe('NO_CHANGE');
+  });
   it('initializes independent H0/H1 fault state', async () => {
     const task = config.tasks[0]!; const h0 = freshService(task); const h1 = freshService(task);
     await expect(h0.execute({ operation: 'read_resource', resource: task.resource })).rejects.toMatchObject({ code: 'ECONNRESET' });

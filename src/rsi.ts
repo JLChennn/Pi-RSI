@@ -9,6 +9,12 @@ import { activeRevision, identity, applySelection, loadVersions } from './evolut
 import { openPolicyBinding, sha } from './evaluation/policy-runtime.js';
 import { evaluateCandidate, loadEvaluationConfig } from './evaluation/evaluator.js';
 
+export function evolutionOutcome(status: string, stage?: string): 'NO_CHANGE' | 'INCONCLUSIVE' | 'REJECT' {
+  if (status === 'NO_CHANGE') return 'NO_CHANGE';
+  if (status === 'BLOCKED' || stage === 'evolver') return 'INCONCLUSIVE';
+  return 'REJECT';
+}
+
 export async function rsiOnce(config: ModelConfig) {
   const root = process.cwd(); const active = activeRevision(root);
   const frozen = loadEvaluationConfig(root);
@@ -43,7 +49,8 @@ export async function rsiOnce(config: ModelConfig) {
   const evolved = await evolveOnce(workerConfig, relative(root, development), { source, revisionId: active.revisionId });
   saveAudit(audit, 'evolution.json', evolved);
   if (evolved.status !== 'PASS') {
-    const outcome = evolved.status === 'NO_CHANGE' ? 'NO_CHANGE' : evolved.status === 'BLOCKED' ? 'INCONCLUSIVE' : 'REJECT';
+    const validation = JSON.parse(readFileSync(join(evolved.audit, 'validation.json'), 'utf8'));
+    const outcome = evolutionOutcome(evolved.status, validation.stage);
     saveAudit(audit, 'outcome.json', { outcome, active: activeRevision(root).revisionId, evolution: relative(root, evolved.audit) });
     return { audit, outcome };
   }
