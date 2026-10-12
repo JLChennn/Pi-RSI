@@ -1,0 +1,3 @@
+# Replay evidence hashes refer to exact original bytes, including line endings.
+# Preserve those bytes across Windows/Linux clones and Git archives.
+examples/phase3-demo/* -text

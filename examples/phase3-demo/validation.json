@@ -1,0 +1,147 @@
+{
+  "status": "PASS",
+  "parentCommit": "ece4cd04f3c753d2e8f745d4527357a847d78e0b",
+  "staticGuard": "PASS",
+  "compilation": "PASS",
+  "invariantTests": "PASS",
+  "behavior": "PASS",
+  "baselineUnchanged": true,
+  "parentRevision": "H0",
+  "candidatePolicyHash": "2c076349354faf72b772071167ef3883135c46797ecb9039307a449e365a275b",
+  "workspace": "experiments\\evolution-2026-10-12T12-04-40-743Z-f41e868c\\workspace",
+  "isolation": {
+    "available": true,
+    "imageId": "sha256:f554b6163d07b6cef959d42161b1ccf98b2ba9030f28b156b017b2d442ff6d31"
+  },
+  "containerCompilation": "PASS",
+  "behaviorEvidence": {
+    "status": "PASS",
+    "sourceHash": "2c076349354faf72b772071167ef3883135c46797ecb9039307a449e365a275b",
+    "compiledHash": "3c3af2a6a9a7935d31fe2720aa966cfdcef834629ba8b7a100077a2e11bd4cca",
+    "baselineHash": "ac938ba658de6bc11f40a3cd336a9ccc2fcdede8c7852ab12d863f5414fb709c",
+    "changes": [
+      {
+        "failure": {
+          "errorCode": "ECONNRESET",
+          "message": "controlled failure",
+          "attempt": 1,
+          "maxAttempts": 2,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      },
+      {
+        "failure": {
+          "errorCode": "ECONNRESET",
+          "message": "controlled failure",
+          "attempt": 1,
+          "maxAttempts": 3,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      },
+      {
+        "failure": {
+          "errorCode": "ECONNRESET",
+          "message": "controlled failure",
+          "attempt": 2,
+          "maxAttempts": 3,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      },
+      {
+        "failure": {
+          "errorCode": "ETIMEDOUT",
+          "message": "controlled failure",
+          "attempt": 1,
+          "maxAttempts": 2,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      },
+      {
+        "failure": {
+          "errorCode": "ETIMEDOUT",
+          "message": "controlled failure",
+          "attempt": 1,
+          "maxAttempts": 3,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      },
+      {
+        "failure": {
+          "errorCode": "ETIMEDOUT",
+          "message": "controlled failure",
+          "attempt": 2,
+          "maxAttempts": 3,
+          "retrySafe": true
+        },
+        "decision": {
+          "action": "retry"
+        }
+      }
+    ],
+    "workerOutcomes": [
+      {
+        "scenario": "transient",
+        "workerSessionId": "01a13001-4473-758f-8c24-ec71b3eef01d",
+        "serviceCalls": 2,
+        "recordCount": 0,
+        "isError": false,
+        "attempts": [
+          {
+            "toolCallId": "candidate-call-transient",
+            "attempt": 1
+          },
+          {
+            "toolCallId": "candidate-call-transient",
+            "attempt": 2
+          }
+        ],
+        "inferenceExecuted": false
+      },
+      {
+        "scenario": "permanent",
+        "workerSessionId": "01a13001-44a2-758f-8c24-ec72c83fc064",
+        "serviceCalls": 1,
+        "recordCount": 0,
+        "isError": true,
+        "attempts": [
+          {
+            "toolCallId": "candidate-call-permanent",
+            "attempt": 1
+          }
+        ],
+        "inferenceExecuted": false
+      },
+      {
+        "scenario": "unsafe",
+        "workerSessionId": "01a13001-44c3-758f-8c24-ec75e2c58a06",
+        "serviceCalls": 1,
+        "recordCount": 1,
+        "isError": true,
+        "attempts": [
+          {
+            "toolCallId": "candidate-call-unsafe",
+            "attempt": 1
+          }
+        ],
+        "inferenceExecuted": false
+      }
+    ],
+    "network": "none",
+    "credentialsInjected": false
+  }
+}

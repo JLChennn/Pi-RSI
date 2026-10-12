@@ -15,8 +15,8 @@ export function evolutionOutcome(status: string, stage?: string): 'NO_CHANGE' | 
   return 'REJECT';
 }
 
-export async function rsiOnce(config: ModelConfig) {
-  const root = process.cwd(); const active = activeRevision(root);
+export async function rsiOnce(config: ModelConfig, namespace?: string) {
+  const root = process.cwd(); const active = activeRevision(root, namespace);
   const frozen = loadEvaluationConfig(root);
   const workerConfig = { ...config, temperature: frozen.temperature, timeoutMs: frozen.timeoutMs,
     maxTurns: frozen.maxTurns, maxOutputTokens: frozen.maxOutputTokens };
@@ -51,12 +51,12 @@ export async function rsiOnce(config: ModelConfig) {
   if (evolved.status !== 'PASS') {
     const validation = JSON.parse(readFileSync(join(evolved.audit, 'validation.json'), 'utf8'));
     const outcome = evolutionOutcome(evolved.status, validation.stage);
-    saveAudit(audit, 'outcome.json', { outcome, active: activeRevision(root).revisionId, evolution: relative(root, evolved.audit) });
+    saveAudit(audit, 'outcome.json', { outcome, active: activeRevision(root, namespace).revisionId, evolution: relative(root, evolved.audit) });
     return { audit, outcome };
   }
-  const evaluation = await evaluateCandidate(workerConfig, relative(root, evolved.audit));
-  const selection = applySelection(root, join(evaluation.audit, 'evaluation.json'));
+  const evaluation = await evaluateCandidate(workerConfig, relative(root, evolved.audit), false, namespace);
+  const selection = applySelection(root, join(evaluation.audit, 'evaluation.json'), namespace);
   const outcome = { audit, outcome: selection.decision, active: selection.active, evaluation: relative(root, evaluation.audit),
-    candidate: relative(root, evolved.audit), versions: loadVersions(root).history.at(-1) };
+    candidate: relative(root, evolved.audit), namespace, versions: loadVersions(root, namespace).history.at(-1) };
   saveAudit(audit, 'outcome.json', outcome); return outcome;
 }

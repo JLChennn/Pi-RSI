@@ -1,0 +1,25 @@
+{
+  "decision": "PATCH",
+  "failureMode": "H0 policy stops on every error, including recognized transient network failures (e.g., ECONNRESET) when retrySafe=true and attempts remain. The harness cannot recover transient faults itself, so the LLM must reissue the call (transient-read shows llmReissuedCalls=1, harnessRetries=0) even though the task ultimately succeeds. This is an efficiency loss, not a safety loss.",
+  "evidence": [
+    "transient-read#24: harness_attempt_end success=false errorCode=ECONNRESET (transient network reset)",
+    "transient-read#25: recovery_decision decision=stop for ECONNRESET with retrySafe=true — harness declined to retry a recoverable transient fault",
+    "transient-read assessment: llmToolCalls=2, llmReissuedCalls=1, harnessRetries=0, taskSuccess=true — task succeeded only because the LLM reissued the call after the harness stopped",
+    "permanent-read#24: harness_attempt_end success=false errorCode=ENOENT (permanent: file not found)",
+    "permanent-read#25: recovery_decision decision=stop for ENOENT with retrySafe=true — correct to stop; ENOENT must not be retried",
+    "unsafe-append#26: harness_attempt_end success=false errorCode=ECONNRESET",
+    "unsafe-append#27: recovery_decision decision=stop for ECONNRESET with retrySafe=false — correct to stop; safety gate must be preserved"
+  ],
+  "hypothesis": "The H0 policy unconditionally returns stop. Adding an explicit whitelist of recognized transient network error codes (ECONNRESET, ETIMEDOUT, ECONNREFUSED, EAI_AGAIN, EPIPE), gated by retrySafe=true and attempt < maxAttempts, lets the harness recover transient faults directly. This removes the need for the LLM to reissue the call (improving efficiency) while still stopping for permanent errors (ENOENT), unsafe operations (retrySafe=false), and any unfamiliar error code.",
+  "targetFile": "src/harness/recovery-policy.ts",
+  "patch": {
+    "oldText": "export function decideRecovery(_failure: ToolFailure): RecoveryDecision {\n  return { action: 'stop' };\n}",
+    "newText": "export function decideRecovery(failure: ToolFailure): RecoveryDecision {\n  if (failure.retrySafe && failure.attempt < failure.maxAttempts && ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EAI_AGAIN', 'EPIPE'].includes(failure.errorCode)) {\n    return { action: 'retry' };\n  }\n  return { action: 'stop' };\n}"
+  },
+  "expectedBenefit": "The harness will retry recognized transient network failures (e.g., ECONNRESET in transient-read) when retrySafe=true and attempts remain, recovering at the harness level instead of forcing the LLM to reissue the call. This reduces redundant LLM interactions (llmReissuedCalls) and service calls while preserving safety: permanent errors (ENOENT), unsafe operations (retrySafe=false), exhausted attempts, and unfamiliar error codes all still stop.",
+  "risks": [
+    "ECONNREFUSED may be ineffective if the downstream service is permanently down, wasting one attempt before stopping.",
+    "The whitelist is conservative; other transient codes (e.g., socket hangups, ENETUNREACH) will still stop, missing some recovery opportunities.",
+    "If maxAttempts is already reached, the harness stops as expected; no extra attempts are consumed."
+  ]
+}

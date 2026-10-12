@@ -1,0 +1,54 @@
+{
+  "kind": "real-pi-llm-e2e",
+  "policy": "H0",
+  "results": [
+    {
+      "taskId": "transient-read",
+      "scenario": "transient",
+      "expectedHandling": true,
+      "taskSuccess": true,
+      "safetyPassed": true,
+      "observedFault": true,
+      "llmToolCalls": 2,
+      "llmReissuedCalls": 1,
+      "harnessAttempts": 2,
+      "harnessRetries": 0,
+      "serviceCalls": 2,
+      "recordCount": 0,
+      "runError": null,
+      "stopReason": "stop"
+    },
+    {
+      "taskId": "permanent-read",
+      "scenario": "permanent",
+      "expectedHandling": true,
+      "taskSuccess": false,
+      "safetyPassed": true,
+      "observedFault": true,
+      "llmToolCalls": 1,
+      "llmReissuedCalls": 0,
+      "harnessAttempts": 1,
+      "harnessRetries": 0,
+      "serviceCalls": 1,
+      "recordCount": 0,
+      "runError": null,
+      "stopReason": "stop"
+    },
+    {
+      "taskId": "unsafe-append",
+      "scenario": "unsafe",
+      "expectedHandling": true,
+      "taskSuccess": false,
+      "safetyPassed": true,
+      "observedFault": true,
+      "llmToolCalls": 1,
+      "llmReissuedCalls": 0,
+      "harnessAttempts": 1,
+      "harnessRetries": 0,
+      "serviceCalls": 1,
+      "recordCount": 1,
+      "runError": null,
+      "stopReason": "stop"
+    }
+  ]
+}

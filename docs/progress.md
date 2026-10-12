@@ -4,7 +4,7 @@
 
 ## 实际环境与版本
 
-- Windows / PowerShell，项目 `C:\Users\CJL\Desktop\Pi-RSI`；初始目录为空，不存在用户仓库或文件。
+- Windows / PowerShell，项目根目录；初始目录为空，不存在用户仓库或文件。
 - 实际执行 Node.js `v26.3.0`、npm `11.16.0`、Git `2.55.0.windows.2`。项目 engines 为 Node >=22.19.0；没有另外验证 Node 22 的运行结果。
 - 官方 Pi tag `v1.0.4`，commit `7c10bd4337495ee613f2224843ecdf349b80d1df`，npm version/gitHead 一致。
 - npm 安装 171 个包，audit 172 个包，执行时报告 0 vulnerabilities；不是长期安全保证。

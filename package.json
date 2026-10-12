@@ -16,7 +16,12 @@
     "rsi:once": "tsx src/cli.ts rsi",
     "rsi:status": "tsx src/cli.ts status",
     "rsi:rollback": "tsx src/cli.ts rollback",
-    "rsi:probe": "tsx scripts/revision-smoke.ts"
+    "rsi:probe": "tsx scripts/revision-smoke.ts",
+    "demo:replay": "tsx scripts/demo.ts replay",
+    "demo:live": "tsx scripts/demo.ts live",
+    "demo:bundle": "tsx scripts/demo.ts export",
+    "docs:assets": "tsx scripts/generate-assets.ts",
+    "check:delivery": "tsx scripts/check-delivery.ts"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.0.4",

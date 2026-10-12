@@ -72,7 +72,7 @@ export function aggregate(rows: EvaluatedTask[]): EvaluationMetrics {
     internalRetries: sum('internalRetries'), underlyingAttempts: sum('underlyingAttempts'), modelTokens: sum('modelTokens'),
     modelCost: null, latencyMs: sum('latencyMs'), unsafeSideEffects: sum('unsafeSideEffects') };
 }
-export async function evaluateCandidate(config: ModelConfig, candidatePath: string, smoke = false) {
+export async function evaluateCandidate(config: ModelConfig, candidatePath: string, smoke = false, namespace?: string) {
   const root = realpathSync(process.cwd());
   const frozen = loadEvaluationConfig(root, smoke);
   if (config.model !== frozen.model) throw new Error('Evaluation requires fixed IQuest-Q1 model');
@@ -80,7 +80,7 @@ export async function evaluateCandidate(config: ModelConfig, candidatePath: stri
     timeoutMs: frozen.timeoutMs, maxOutputTokens: frozen.maxOutputTokens };
   const audit = join(root, 'experiments', `evaluation-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`);
   mkdirSync(audit);
-  const active = identity(root, activeRevision(root));
+  const active = identity(root, activeRevision(root, namespace));
   let candidate;
   try { candidate = validatedCandidate(root, candidatePath); }
   catch {

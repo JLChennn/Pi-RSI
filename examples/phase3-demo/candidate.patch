@@ -1,0 +1,15 @@
+diff --git a/src/harness/recovery-policy.ts b/src/harness/recovery-policy.ts
+index a786bfc..601dbcf 100644
+--- a/src/harness/recovery-policy.ts
++++ b/src/harness/recovery-policy.ts
+@@ -3,6 +3,9 @@ export type ToolFailure = {
+   errorCode: string; message: string; attempt: number; maxAttempts: number; retrySafe: boolean;
+ };
+ export type RecoveryDecision = { action: 'retry' | 'stop' };
+-export function decideRecovery(_failure: ToolFailure): RecoveryDecision {
++export function decideRecovery(failure: ToolFailure): RecoveryDecision {
++  if (failure.retrySafe && failure.attempt < failure.maxAttempts && ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EAI_AGAIN', 'EPIPE'].includes(failure.errorCode)) {
++    return { action: 'retry' };
++  }
+   return { action: 'stop' };
+ }

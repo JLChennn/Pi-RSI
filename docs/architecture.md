@@ -109,3 +109,9 @@ flowchart TD
 `assessEvaluation` 独立计算版本无关正确性，不套用 H0 的“内部重试必须为零”规则。计数来自真实 Pi tool start、Wrapper attempt 和 service.calls。Selector 的输入、配置、源码/编译哈希、Validation 哈希、容器 attestation、JSONL 和最终评测都保留。切换前重新校验这些产物；版本损坏时安全失败，不偷偷退回根目录策略。
 
 Version Manager 在锁内写临时 JSON 后 rename，指针发布前准备完整快照；拒绝只追加历史。回滚指向 previous，并将 previous 更新为其 parent，重复回到 H0 后不会再次向前切换。旧 Session 固定持有原 Binding，新 Session 才读取新的指针。
+
+## Phase 4 Demo 边界
+
+Replay只读 `examples/phase3-demo` 的真实脱敏复制件，校验原始bytes哈希、source identity、逐项汇总和确定性选择；不创建Session、容器或版本存储。`--run` 可读取其他完整本地RSI目录。
+
+Live通过 `rsiOnce(config, namespace)` 复用同一流程。`activeRevision`、`evaluateCandidate`、`applySelection` 显式收到相同namespace，状态存于 `.pi-rsi/demos/<id>/`，初始H0独立于主Active。Policy仍显式注入各Worker，不靠进程全局版本变量。报告比较主Manifest前后bytes的SHA256，生成失败不替换预置候选。

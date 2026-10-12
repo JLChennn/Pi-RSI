@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "kind": "REAL_PHASE3_EVIDENCE_COPY",
+  "run": "experiments/rsi-2026-10-12T12-04-29-750Z-20447277",
+  "parentCommit": "ece4cd04f3c753d2e8f745d4527357a847d78e0b",
+  "upstreamCommit": "7c10bd4337495ee613f2224843ecdf349b80d1df",
+  "model": "IQuest-Q1",
+  "originals": {
+    "evaluation.json": "experiments/evaluation-2026-10-12T12-05-52-695Z-c5aa858a/evaluation.json",
+    "validation.json": "experiments/evolution-2026-10-12T12-04-40-743Z-f41e868c/validation.json",
+    "proposal.json": "experiments/evolution-2026-10-12T12-04-40-743Z-f41e868c/proposal.json",
+    "candidate.patch": "experiments/evolution-2026-10-12T12-04-40-743Z-f41e868c/candidate.patch",
+    "h0-policy.ts": "experiments/evolution-2026-10-12T12-04-40-743Z-f41e868c/baseline-policy.ts",
+    "h1-policy.ts": "experiments/evolution-2026-10-12T12-04-40-743Z-f41e868c/workspace/src/harness/recovery-policy.ts",
+    "development.json": "experiments/rsi-2026-10-12T12-04-29-750Z-20447277/development/summary.json"
+  },
+  "hashes": {
+    "evaluation.json": "e285018c5cd65a13ac6c5cfda5ed9644cdb0533cb35a90a821019e917c789d4d",
+    "validation.json": "93c985f2a435db1f1cf835132e9b507b8c7c686e0a796b5ce40a4f648534e498",
+    "proposal.json": "a4928af1da9a3c411aa995c93b093756ae8c2af5f7dbb81acc32b1b6c677f5c2",
+    "candidate.patch": "6ae6b00162a1549918e8ae1f9b8f635c0456773a0b18aefcf86965ac814a2c37",
+    "h0-policy.ts": "4060fbe52452a5fa5f90d24c6fa803aacab3c5f3daf5b45d0047d9dd34a6ca44",
+    "h1-policy.ts": "2c076349354faf72b772071167ef3883135c46797ecb9039307a449e365a275b",
+    "development.json": "1173fedb47e5db6ff005f640437b2123c1556c63a2f56f401345bf7460cffd4d"
+  },
+  "scope": "Exact public controlled-task artifacts; raw HTTP/stream traces, credentials, machine paths and source clones excluded"
+}
