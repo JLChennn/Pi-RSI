@@ -67,4 +67,4 @@ Pi-RSI 保存 `pi_<type>` 事件以及自己的 wrapper 事件。`tool_execution
 
 ## 6. 本阶段边界
 
-自定义 wrapper 只操作本地可控 WorkspaceService；SDK 只启用这个工具。`retrySafe` 来自 adapter，最大尝试数由 wrapper 固定执行。Provider HTTP 重试、Session 自动重试与 cache warming 已关闭，便于观察工具层行为。Pi 本身不提供项目所需的 Evolver 文件权限沙箱；未来只改一个文件的约束仍需 Phase 2 的外部执行和 patch 审核边界，不能靠 prompt 宣称已完成。
+自定义 wrapper 只操作本地可控 WorkspaceService；Worker SDK 只启用这个工具。`retrySafe` 来自 adapter，最大尝试数由 wrapper 固定执行。Provider HTTP 重试、Session 自动重试与 cache warming 已关闭，便于观察工具层行为。Pi 本身不提供项目所需的 Evolver 文件权限沙箱；Phase 2 通过无工具独立 Evolver、宿主单文件 AST Guard、独立源码 clone 和禁网 Docker 验证建立外部边界，不靠 prompt 宣称安全。详见 evolver-design.md。

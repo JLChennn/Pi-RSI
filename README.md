@@ -1,6 +1,6 @@
 # Pi-RSI
 
-面试学习项目：Failure-Driven Harness Evolution 的 **Phase 0 + Phase 1**。实现真实 Pi Worker、H0 工具失败策略、三类本地故障、JSONL 轨迹和最小基线评测。当前没有 Evolver / 自动改写 / Accept-Rollback。
+面试学习项目：Failure-Driven Harness Evolution 的 **Phase 0 + Phase 1 + Phase 2**。真实 Pi Worker、H0 工具策略、三类本地故障、JSONL 与基线评测；独立 Evolver 从真实经验生成单文件候选并隔离验证。尚无正式性能 Evaluator / Accept-Rollback / 多轮 RSI。
 
 Pi 上游固定为官方 `earendil-works/pi`，`v1.0.4`，commit `7c10bd4337495ee613f2224843ecdf349b80d1df`。版本与 npm gitHead 见 [docs/pi-version.json](docs/pi-version.json)，源码入口见 [docs/pi-source-map.md](docs/pi-source-map.md)。项目根目录直接使用当前 `Pi-RSI`，避免无意义再套一层子目录；npm 包名 `pi-rsi`。
 
@@ -67,6 +67,34 @@ Benchmark 分别报告任务成功、预期错误处理、安全，以及 LLM �
 - [学习路线](docs/learning-guide.md)：十个问题定位源码。
 - [验收进度](docs/progress.md)：实际命令、证据、未完成项。
 
-从 `main → runWorker → createWorker → createAgentSession → tool.execute → decideRecovery → trace.record → assess` 阅读。下一阶段仅在用户确认后开发独立 Evolver，修改目标限定 recovery-policy.ts；本阶段完成后停止。
+从 `main → runWorker → createWorker → createConfiguredSession → createAgentSession → tool.execute → decideRecovery → trace.record → assess` 阅读。Phase 2 的下一阶段为独立 Evaluator + Accept/Rollback，本阶段完成后停止。
+
+## Phase 2：真实 Evolver 与隔离候选
+
+```powershell
+# 可选：提前构建可信依赖镜像。需要已安装且运行的 Docker Desktop。
+npm.cmd run candidate:image
+
+# 使用最近匹配当前 H0 policy hash 的真实 Benchmark Run
+npm.cmd run evolve:once
+
+# 或明确选择一个已有运行；路径相对于项目根目录
+npm.cmd run evolve:once -- --run experiments/benchmark-<timestamp>-<id>
+
+# 全量离线测试，包含在容器执行的合成候选 fixture；不调用 LLM
+$env:PI_RSI_TEST_DOCKER = "1"
+npm.cmd test
+Remove-Item Env:PI_RSI_TEST_DOCKER
+```
+
+Evolver 使用现有本地模型配置，无文件/命令工具。`PI_RSI_EVOLVER_MAX_TOKENS` 默认 8192（2048..16384），仅用于自定义 provider 的 Evolver 输出预算；Worker 保留 2048。整体 timeout 使用 PI_RSI_TIMEOUT_MS，最多一次格式修复。模型输出可能是 PATCH 或 NO_CHANGE。
+
+每次保存 `experiments/evolution-<timestamp>-<id>/`：parent.json、observation.json、evolver.jsonl、usage.json、proposal.json、candidate.patch、compile.json、execution.json、cleanup.json、validation.json、summary.md 和独立 workspace。失败也保留记录，未生成 Proposal 时保存 response 或 trace。候选只改 recovery-policy.ts，Baseline 不改，候选不合并。
+
+候选动态验证必须使用禁网、无密钥、只读挂载、降权的 Docker 容器；不可用时状态 BLOCKED（退出 2），没有宿主执行后备。AST/编译/行为验证失败退出 1；PASS 或 NO_CHANGE 退出 0。可信依赖镜像保留作复用缓存，单次运行容器会清理。
+
+原有 41 项测试保持不变，在 Baseline 完整运行。候选执行其中 36 项固定约束，排除 5 项专属 H0 Stop oracle，再执行可信行为探针。不能将候选结果表述为通过全部原 H0 oracle，也不能将本阶段功能验证表述为性能提升证明。
+
+详见 [Evolver 设计](docs/evolver-design.md)和[Phase 2 验收](docs/phase2-validation.md)。
 
 真实验证：IQuest-Q1 Demo 通过；修正首次 E2E 发现的故障序列计数缺陷后，三场景预期处理 3/3、安全 3/3。瞬时读取由模型另发调用恢复，H0 内部重试仍为 0；另两个场景正确报告失败/未知。全量离线测试 41 项通过。原始失败与成功运行均保留，详情见 [真实基线报告](docs/live-baseline.md)。

@@ -10,7 +10,7 @@ Worker 执行任务；Evolver 分析执行经验并输出 Proposal。两者共�
 
 `evolver.ts::loadObservation` 支持 `--run <目录>`，省略时选择 experiments 下最近一个匹配当前 H0 policy hash 的真实 Benchmark。必须有 H0 manifest、real-pi-llm-e2e summary 和每任务 JSONL。限制文件大小，校验 task ID、目录真实路径和基本事件完整性。
 
-`extractFacts` 保留模型调用、底层执行结果、错误码、策略决策、任务末态和评分，省略 streaming text。每条事实带 `taskId#原始行索引` 与 toolCallId。因此“首次 Stop、模型另发调用、后续读取成功”的事实来自 Trace，不是固定的改进结论。
+`extractFacts` 保留模型调用、底层执行结果、错误码、策略决策、任务末态和评分，省略 streaming text。每条事实带 `taskId#原始行索引`（从 0 开始）与 toolCallId。因此“首次 Stop、模型另发调用、后续读取成功”的事实来自 Trace，不是固定的改进结论。
 
 摘要与 trace 哈希保存为 observation.json；源任务、trace 内容属于数据，不具有指令权限。真实性以本次亲自执行的 H0/LLM 验证和审计产物为证，不把 JSON 的 kind 字段视为密码学真实性证明。
 
@@ -60,4 +60,4 @@ AST Guard 只支持简单 if/return、const 标量或布尔表达式、直接读
 
 ## Phase 3 接入点
 
-读取 validation.json 中 PASS 的候选、parent commit、policy/compiled hash 和实际 diff，执行冻结条件下的独立 Worker E2E 比较。评价业务成功、LLM 重发成本、Harness 尝试、永久错误浪费与 unsafe 副作用；再实现明确 Accept/Rollback。当前没有性能排名、自动接受、合并或多轮循环，因此不能宣称完成完整 RSI。
+读取 validation.json 中 PASS 的候选、parent commit、policy/compiled hash 和实际 diff，执行冻结条件下的独立 Worker E2E 比较。评价业务成功、LLM 重发成本、Harness 尝试、永久错误浪费与 unsafe 副作用；再实现明确 Accept/Rollback。现有 benchmark:h0 的 safetyPassed 特别要求内部 retries=0，仅适用于 H0；不能直接拿来给候选的合法内部重试打分，Phase 3 应建立候选无权修改的独立标准。当前没有性能排名、自动接受、合并或多轮循环，因此不能宣称完成完整 RSI。

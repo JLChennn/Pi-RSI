@@ -1,6 +1,6 @@
-# Phase 0 + Phase 1 验收进度
+# Pi-RSI 验收进度：Phase 0 + Phase 1 + Phase 2
 
-更新：2026-10-12（Asia/Shanghai）。本阶段实现完成，离线验证与真实 IQuest-Q1 Demo、三任务 Agent E2E 均已验证。首轮失败暴露的注入器缺陷已修复并保留证据。没有开始 Phase 2，也没有宣称完成完整 RSI。
+更新：2026-10-12（Asia/Shanghai）。Phase 0/1 真实 Worker 与 H0 基线已验证；Phase 2 已有真实 IQuest-Q1 生成候选通过静态、编译、容器回归和新 Worker 加载验证。Baseline 仍为 H0，没有开始 Phase 3，也没有宣称完成完整 RSI。
 
 ## 实际环境与版本
 
@@ -55,6 +55,40 @@ SDK smoke 的 trace 存在 `experiments/sdk-smoke-*.jsonl`，明确记录 `infer
 
 用户补充了 IQuest-Q1 配置并自行填入 key。已支持 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `MODEL_NAME` / `OPENAI_API_MODE`，原 `PI_RSI_*` 非空项优先；本地 `.env` 被 Git 忽略，未输出或提交密钥。真实 endpoint 已通过 Demo 与三场景验证。
 
-当前仍未完成 Evolver、独立候选评估与接受/回滚，也没有正式多轮统计实验。真实 H0 结果与首轮问题见 [live-baseline.md](live-baseline.md)；需要检查 stopReason / runError / actual service state / trace / summary，而不是仅看命令结束。
+Evolver 与受控候选功能验证已完成；独立性能评估与接受/回滚尚未完成，也没有正式多轮统计实验。真实 H0 结果与首轮问题见 [live-baseline.md](live-baseline.md)；需要检查 stopReason / runError / actual service state / trace / summary，而不是仅看命令结束。
 
-随后才进入 Phase 2：独立 Pi Evolver 消费失败 trace，生成只涉及 `src/harness/recovery-policy.ts` 的最小 patch；候选工作区必须禁止改 wrapper、fault injector、任务、测试、grader。独立比较 H0/候选的业务成功、模型重发、Harness 重试、永久错误浪费与 unsafe 重复写。通过后才接受，失败则回滚。默认未来最多 3 轮。**这些权限与循环尚未实现，本阶段在此停止。**
+Phase 2 的结构化 Proposal、单文件 Guard、候选隔离和功能验证现已实现，见下。独立统计比较、Accept/Rollback 和默认未来最多 3 轮的多轮 RSI 仍属于 Phase 3，尚未实现。
+
+## Phase 2 当前状态
+
+- 新增三个核心模块：evolver.ts、evolution/patch-guard.ts、evolution/candidate.ts。
+- Worker/Evolver 使用共享 SDK 工厂，但独立 Session；Evolver 无工具。
+- 真实 H0 输入通过 manifest、policy hash、trace/task 基本完整性校验并精简；支持 --run 或自动找最近匹配 Run。
+- 严格 Proposal（PATCH/NO_CHANGE），精确代码替换，真实 git diff；只允许单一 policy 文件、保持导出接口，AST 封闭语法白名单。
+- 独立源码 clone 指定 parent commit，宿主只静态编译；候选执行仅在禁网、无密钥、只读、降权 Docker 容器中进行。
+- 真实生成候选 `evolution-2026-10-12T08-56-28-617Z-fffbb308`：guard/build/invariant-tests/behavior PASS，Baseline unchanged。
+- 新候选 Worker 的瞬时读同一 toolCallId 内 attempt 1/2 成功；永久和 unsafe 各只执行一次，unsafe 恰好一条记录。
+- 真实 Proposal、Diff、验证、Trace、用量、parent/hash、独立源码副本保留；容器已清理；没有合并候选。
+
+## Phase 2 实际验证
+
+| 命令/检查 | 结果 |
+|---|---|
+| 原 Baseline npm test | 41 passed |
+| Phase 2 npm run build | PASS |
+| 默认 npm test | 70 passed、3 skipped（opt-in Docker fixtures） |
+| npm run smoke:sdk | 共用工厂后 Worker SDK Smoke PASS |
+| Docker opt-in evolution.test.ts | 32 passed，包含 29 个纯测试与 3 个容器 fixture |
+| 首次真实 evolve:once | FAIL：输出 2048 tokens 截断、stopReason=length，未应用候选 |
+| 独立预算修正后真实 evolve:once | PASS：真实 IQuest 生成、静态/编译/36 项不变回归/行为验证通过 |
+| 最后全量 Docker opt-in npm test | **3 文件，73 passed，0 failed，0 skipped，129.36s** |
+
+三个动态 fixture 明确是合成 Proposal：合规改变通过、unsafe-only 重试在函数安全矩阵被拒绝、类型不兼容在编译时被拒绝。不得把它们当作模型生成证据。真实生成只由独立 IQuest run/response/proposal 证据支持。
+
+原有 41 项测试未修改；其中 5 项只定义 H0 固定 Stop 行为，在候选阶段明确排除，其余 36 项不变。候选不是“通过全部 H0 oracle”，而是通过不变约束和新增可信行为检查。
+
+## Phase 2 遗留限制
+
+AST 仅支持小型纯函数子集，有限行为矩阵不能替代完整语义证明。自定义模型价格未知，记录实际 provider token 用量但不伪称目录零成本为免费。候选 Worker 验证无模型推理，正式 Agent E2E 比较尚未做。Docker/依赖镜像不可用时 BLOCKED，不在宿主执行候选。初始模型输出截断记录已保留，Evolver 现在使用独立 8192-token 默认预算，最多一次格式修复。
+
+下一入口是读取 PASS 的 validation.json 和对应 parent/diff/hashes 接入独立 Evaluator，再实施 Accept/Rollback。本阶段不开展这些工作。完整验收与真实 Diff 见 [phase2-validation.md](phase2-validation.md)。

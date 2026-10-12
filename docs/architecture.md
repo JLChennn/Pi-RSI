@@ -1,6 +1,6 @@
-# Pi-RSI Phase 0 + Phase 1 架构
+# Pi-RSI Phase 0 + Phase 1 + Phase 2 架构
 
-目标是给将来的 Run → Reflect → Rewrite → Evaluate → Accept/Rollback 准备一个可观测 H0。当前只包含 Run 和独立测试/基线评测入口；没有 Evolver、候选改写、版本比较或自动回滚。
+当前实现 Phase 0/1 的可观测 H0，以及 Phase 2 的 Observe → Reflect → Rewrite 和受控候选功能验证。正式性能比较、自动接受和回滚仍未实现。
 
 ```mermaid
 flowchart TD
@@ -28,12 +28,15 @@ flowchart TD
 | 文件 | 职责 |
 |---|---|
 | `src/cli.ts` | 配置预检查、运行目录、Demo/Benchmark 入口 |
-| `src/agent.ts` | 真实会话、隔离资源加载、订阅、任务、时间/轮次预算、退出 |
+| `src/agent.ts` | Worker/Evolver 共用真实 SDK Session 工厂；Worker 任务、预算与退出 |
 | `src/harness/recovery-tool.ts` | 捕获底层错误、H0 调用、固定安全检查、最终 Pi Result |
 | `src/harness/recovery-policy.ts` | 当前纯函数 H0；未来唯一可进化源码文件 |
 | `benchmarks/fault-injector.ts` | 可复现资源和副作用状态，不访问真实外部业务服务 |
 | `src/trajectory.ts` | 同步追加脱敏 JSONL，保证落盘顺序 |
 | `benchmarks/runner.ts` | 三任务各建新会话，状态判定与统计、manifest |
+| `src/evolver.ts` | 从真实 H0 Run 提取事实、独立无工具 Evolver Session、Proposal 与用量 |
+| `src/evolution/patch-guard.ts` | 严格 Proposal、精确替换、封闭 TypeScript AST 白名单 |
+| `src/evolution/candidate.ts` | 独立 clone、真实 Diff、编译、禁网容器验证、审计与清理 |
 
 ## 重试与安全
 
@@ -43,7 +46,7 @@ H0 对每次错误都返回 Stop。Wrapper 可以支持未来 retry decision，�
 
 这约束的是 **Harness 内部重试**。模型另发一次 append 仍可能产生第二条记录，本阶段没有加入写操作幂等去重协议；benchmark 必须检测并报告，不能把 prompt 中的“不要重复写”当安全保证。
 
-Policy 纯函数和 freeze 不是对恶意 TypeScript 的权限沙箱。将来 Evolver 的执行进程、文件修改权限、patch 范围和验证隔离必须另行实现。本阶段未赋予任何 Agent 修改源码的工具。
+Policy 纯函数和 freeze 不是对恶意 TypeScript 的权限沙箱。Phase 2 的 Evolver 仍没有文件或执行工具：输出结构化替换，由宿主 Guard 应用到独立 clone。候选在无密钥、禁网、只读挂载、降权的 Docker 容器验证，不在宿主执行。该设计是受限单文件流程，不宣称通用沙箱或全语义安全证明。
 
 ## 场景与评分含义
 
@@ -60,3 +63,23 @@ Policy 纯函数和 freeze 不是对恶意 TypeScript 的权限沙箱。将来 E
 一次失败：`task_start → pi_tool_execution_start + llm_tool_call(id=A) → wrapper_call(A) → harness_attempt_start(A,1) → harness_attempt_end(A,1,false,ECONNRESET) → recovery_decision(A,stop) → wrapper_result(A,false) → pi_tool_execution_end(A,isError=true) → 模型下一轮 → task_end`。
 
 内部 retry 会保持 A、attempt 增为 2；模型重新调用会换 B、attempt 从 1 开始。`pi_message_*` 保存模型消息内容，`task_end` 保存最终文本和 stopReason；`benchmark_assessment` 保存程序评分。日志不订阅原始 HTTP 请求/响应 header hooks；credential 字段、Bearer 字符串、配置 key 字面值会脱敏。任务只能包含受控数据，不应把任意秘密作为 prompt 输入。
+
+## Phase 2 调用链
+
+```mermaid
+flowchart TD
+    H0[真实 H0 Run: manifest / summary / JSONL] --> Facts[精简事实 + event refs + hashes]
+    Facts --> Evolver[独立 Pi Evolver Session: 无工具]
+    Source[当前 H0 policy 源码与约束] --> Evolver
+    Evolver --> Proposal[Proposal: PATCH 或 NO_CHANGE]
+    Proposal --> Guard[严格 schema / exact target / AST]
+    Guard --> Candidate[独立 Git clone: parent commit]
+    Candidate --> Diff[唯一 policy 修改 + 实际 Git Diff]
+    Diff --> Compile[可信 tsc noEmit: 不执行候选]
+    Compile --> Container[禁网无密钥容器: build + 36 invariant tests]
+    Container --> Behavior[策略输出对照 + 新 Worker Session 加载验证]
+    Behavior --> Audit[保存 hashes / validation / usage / trace]
+    Proposal -->|NO_CHANGE 或拒绝| Audit
+```
+
+Baseline 原有 41 项测试完整保留；5 项 H0 Stop oracle 不适用于改变该行为的候选。候选执行其余 36 项不变约束，并额外验证行为变化。没有自动合并候选，没有多轮 RSI；详细边界见 evolver-design.md。

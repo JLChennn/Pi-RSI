@@ -34,12 +34,23 @@ Pi `executeToolCalls → prepareToolCall → executePreparedToolCall → wrapToo
 
 严格说，H0 的**首次瞬时故障工具调用**失败，因为 policy 返回 Stop；不是说整个 Pi 任务必败。模型有能力再发 Tool Call，第二次底层调用可成功。E2E 的 H0 可能仍通过任务，不能将该成功归功于 Harness 自动恢复。Permanent 本来无法读成功；unsafe 的 response loss 应报告未知，不能通过重复写换取成功响应。
 
-## 9. 后续 Evolver 应该修改什么？
+## 9. Evolver 修改什么？
 
-唯一目标 `src/harness/recovery-policy.ts::decideRecovery`，由失败轨迹提出最小候选 patch。不能改 wrapper、adapter、fault sequence、测试、任务或 grader。Phase 2 必须在受限候选工作区实现 patch 检查与独立验证；本项目当前没有自动修改入口，也没有 H1。
+唯一目标 `src/harness/recovery-policy.ts::decideRecovery`。Phase 2 已实现 `evolve:once`：独立 Evolver 根据失败及低效轨迹生成结构化替换，由程序在独立候选 clone 中应用；不能改 wrapper、adapter、fault sequence、测试、任务或 grader。候选经过 AST、编译与隔离验证，不自动成为当前策略。Baseline 仍为 H0。
 
 ## 10. 为什么这是 Harness 级 RSI 的准备工作？
 
-未来改的是影响后续所有任务工具执行的程序逻辑，不是改一个任务答案、prompt、模型权重或上下文内容。真正 RSI 要有 Run → Reflect → Rewrite → Evaluate → Accept/Rollback 的验证闭环；Phase 0/1 只是可进化对象、受控失败和证据链，不能称已实现自我改进。
+Phase 2 改的是候选 Worker 会加载的程序逻辑，不是改一个任务答案、prompt、模型权重或上下文内容。已验证真实 Evolver 生成的候选改变同一 toolCallId 内的尝试行为。完整 RSI 仍需要独立 Evaluate → Accept/Rollback 和后续任务运行闭环，当前还没有这些能力。
 
 建议口述：模型通过 Pi 决定“调用什么”，Wrapper 决定同一个调用失败后“是否再次执行”。Policy 可进化，安全边界与评测保持固定。真实提升必须独立比较新旧版本，且区分模型恢复和 Harness 恢复。
+
+## Phase 2 源码阅读顺序
+
+1. `evolver.ts::loadObservation / extractFacts`：如何从原始行号、错误和调用 ID 建立事实；为什么成功任务也可能有改进动机。
+2. `agent.ts::createConfiguredSession`：Worker 的工具列表含 workspace_service，Evolver 是空列表；同底座模型但独立 Session。
+3. `evolver.ts::evolveOnce`：提供当前源码、生成 Proposal、最多一次格式修复、保存真实 token 用量。
+4. `patch-guard.ts::parseProposal / guardPolicy`：为什么要求 literal target 和 AST 白名单，而不是信任 prompt。
+5. `candidate.ts::validateCandidate`：如何 clone parent、应用唯一替换、生成 diff、编译和隔离运行。
+6. `scripts/validate-candidate.ts`：source/compiled hash 如何对应实际 import；新 Session 同一调用内 attempt 1/2 如何证明候选已加载。
+
+真实案例和限制见 [phase2-validation.md](phase2-validation.md)，设计见 [evolver-design.md](evolver-design.md)。
