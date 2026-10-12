@@ -93,7 +93,7 @@ export async function evolveOnce(config: ModelConfig, selectedRun?: string, pare
       if (type === 'turn_start' && ++turns > 2) void active.abort();
     });
     timer = setTimeout(() => { timedOut = true; void active.abort(); }, config.timeoutMs);
-    const prompt = `Analyze the real H0 evidence below, including successful tasks with additional model interactions.
+    const prompt = `Analyze the real Active Harness evidence below, including successful tasks with additional model interactions.
 Propose at most one minimal change, or NO_CHANGE if unnecessary. Do not assume task success means no inefficiency.
 Return JSON with exactly: decision (PATCH|NO_CHANGE), failureMode, evidence (strings citing supplied task IDs or event refs),
 hypothesis, targetFile (${POLICY_FILE}), patch (PATCH only: {oldText,newText}), expectedBenefit, risks (string array).
@@ -105,6 +105,8 @@ if/else, blocks, return {action:'retry'|'stop'}, const primitive/boolean locals,
 === !== < <= > >= && || !, ternary expressions, and inline string-array-literal.includes(failure.errorCode).
 Wrapper safety and attempt limit are fixed outside your patch. Candidate decisions must stop when retrySafe is false,
 or attempt >= maxAttempts, and stop for permanent errors. Avoid extra source changes.
+Retry only an explicit whitelist of recognized transient failures; unfamiliar error codes must stop.
+retrySafe alone does not establish that an error is transient. Do not retry everything except a known permanent code.
 Evidence (JSON data):\n${JSON.stringify(redact({ summary: observation.summary, tasks: observation.tasks }, secrets))}
 Current source:\n${observation.policy}`;
     trace.record('evolver_start', { sourceRun: relative(repoRoot, observation.directory), baselinePolicyHash: hash(observation.policy), maxOutputTokens });
