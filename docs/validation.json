@@ -7,10 +7,10 @@
   "piVersion": "1.0.4",
   "piCommit": "7c10bd4337495ee613f2224843ecdf349b80d1df",
   "build": { "exitCode": 0 },
-  "unitTests": { "filesPassed": 2, "testsPassed": 34, "testsFailed": 0 },
-  "sdkSmoke": { "realSessionCreated": true, "registeredToolExecutedDirectly": true, "inferenceExecuted": false, "exitCode": 0 },
-  "demoPreflight": { "exitCode": 1, "missing": ["PI_RSI_PROVIDER", "PI_RSI_MODEL", "PI_RSI_API_KEY"] },
+  "unitTests": { "filesPassed": 2, "testsPassed": 38, "testsFailed": 0 },
+  "sdkSmoke": { "realSessionCreated": true, "providers": ["anthropic", "iquest"], "registeredToolExecutedDirectly": true, "inferenceExecuted": false },
+  "demoPreflight": { "exitCode": 1, "missing": ["PI_RSI_API_KEY / OPENAI_API_KEY"] },
   "benchmarkPreflight": { "exitCode": 1, "missing": ["PI_RSI_PROVIDER", "PI_RSI_MODEL", "PI_RSI_API_KEY"] },
-  "realLlmE2E": "not-run-no-project-model-configuration",
+  "realLlmE2E": "not-run-project-IQuest-key-empty",
   "phase2": "not-implemented"
 }

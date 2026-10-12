@@ -33,7 +33,20 @@ npm.cmd run demo:agent
 npm.cmd run benchmark:h0
 ```
 
-CLI 使用 Node `loadEnvFile` 加载项目 `.env`，也支持进程环境变量。必须提供 `PI_RSI_PROVIDER`、`PI_RSI_MODEL`、`PI_RSI_API_KEY`；不会搜索已有用户 auth.json 或其他项目的密钥。内置模型以锁定 Pi catalog 为准。自定义兼容服务同时设置 `PI_RSI_API` 和 `PI_RSI_BASE_URL`，支持 openai-responses / openai-completions / anthropic-messages。`.env.example` 是格式示例，不代表已验证任一服务可用。没有配置时 E2E 命令清楚提示并退出 1。
+CLI 使用 Node `loadEnvFile` 加载项目 `.env`，也支持进程环境变量。支持用户提供的 IQuest 配置：
+
+```dotenv
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://codeplan.iquestlab.com/api/predict/converge.converge/v1
+MODEL_NAME=IQuest-Q1
+OPENAI_API_MODE=responses
+```
+
+在本地填入 key 即可；`responses` 映射为 Pi 的 `openai-responses`，base URL 原样保留，由 provider 客户端请求其 `/responses` 路径。自定义 endpoint 未指定 provider 时使用内部注册名 `iquest`。
+
+原有 `PI_RSI_PROVIDER`、`PI_RSI_MODEL`、`PI_RSI_API_KEY`、`PI_RSI_API`、`PI_RSI_BASE_URL` 仍受支持，非空时优先于对应别名。内置模型需 provider/model/key，省略 custom endpoint/API；自定义服务需 API 与 BASE_URL 配套，支持 openai-responses / openai-completions / anthropic-messages；别名 API_MODE 支持 responses / completions。
+
+不会搜索已有用户 auth.json 或其他项目的密钥。示例配置不代表服务已验证可用；空 key 时 E2E 命令清楚提示并退出 1。SDK smoke 验证内置模型和 IQuest 自定义 provider 会话构造，两者都不请求模型。
 
 默认 60 秒、8 轮模型请求，工具内部最多 3 次尝试、每任务最多 12 次工具调用。可配置 `PI_RSI_TIMEOUT_MS` / `PI_RSI_MAX_TURNS`。没有真实外部业务副作用：append 仅修改每任务的本地内存数组。
 

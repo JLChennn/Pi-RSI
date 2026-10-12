@@ -13,10 +13,19 @@ export type ModelConfig = { provider: string; model: string; apiKey: string;
   timeoutMs: number; maxTurns: number };
 export function readModelConfig(loadFile = true): ModelConfig {
   if (loadFile && existsSync('.env')) loadEnvFile('.env');
-  const missing = ['PI_RSI_PROVIDER', 'PI_RSI_MODEL', 'PI_RSI_API_KEY'].filter(key => !process.env[key]?.trim());
+  const value = (name: string) => process.env[name]?.trim() || undefined;
+  const baseUrl = value('PI_RSI_BASE_URL') ?? value('OPENAI_BASE_URL');
+  const provider = value('PI_RSI_PROVIDER') ?? (baseUrl ? 'iquest' : undefined);
+  const model = value('PI_RSI_MODEL') ?? value('MODEL_NAME');
+  const apiKey = value('PI_RSI_API_KEY') ?? value('OPENAI_API_KEY');
+  const missing = [!provider && 'PI_RSI_PROVIDER', !model && 'PI_RSI_MODEL / MODEL_NAME',
+    !apiKey && 'PI_RSI_API_KEY / OPENAI_API_KEY'].filter(Boolean);
   if (missing.length) throw new Error(`Missing configuration: ${missing.join(', ')}. Copy .env.example to .env and configure your own model; no simulated LLM fallback.`);
-  const api = process.env.PI_RSI_API;
-  const baseUrl = process.env.PI_RSI_BASE_URL;
+  const mode = value('OPENAI_API_MODE');
+  const explicitApi = value('PI_RSI_API');
+  if (!explicitApi && mode && !['responses', 'completions'].includes(mode))
+    throw new Error('Unsupported PI_RSI_API / OPENAI_API_MODE. Use responses or completions.');
+  const api = explicitApi ?? (mode === 'responses' ? 'openai-responses' : mode === 'completions' ? 'openai-completions' : undefined);
   if (Boolean(api) !== Boolean(baseUrl)) throw new Error('Set PI_RSI_API and PI_RSI_BASE_URL together.');
   if (api && !['openai-responses', 'openai-completions', 'anthropic-messages'].includes(api))
     throw new Error('Unsupported PI_RSI_API. See .env.example.');
@@ -30,8 +39,8 @@ export function readModelConfig(loadFile = true): ModelConfig {
   if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 300000 ||
       !Number.isInteger(maxTurns) || maxTurns < 1 || maxTurns > 30)
     throw new Error('Timeout must be 100..300000 ms and max turns 1..30.');
-  return { provider: process.env.PI_RSI_PROVIDER!, model: process.env.PI_RSI_MODEL!,
-    apiKey: process.env.PI_RSI_API_KEY!, api: api as ModelConfig['api'], baseUrl, timeoutMs, maxTurns };
+  return { provider: provider!, model: model!, apiKey: apiKey!,
+    api: api as ModelConfig['api'], baseUrl, timeoutMs, maxTurns };
 }
 
 /** Real SDK construction, independent of network inference. No user-global auth/config files. */
@@ -40,7 +49,7 @@ export async function createWorker(config: ModelConfig, service: WorkspaceServic
     refreshOnCreate: false, allowModelNetwork: false });
   if (config.api && config.baseUrl) runtime.registerProvider(config.provider, {
     api: config.api, baseUrl: config.baseUrl,
-    // An environment reference, never a literal secret in provider config.
+    // Placeholder auth reference; the effective key is supplied by the runtime overlay below.
     apiKey: 'PI_RSI_API_KEY',
     models: [{ id: config.model, name: config.model, input: ['text'], reasoning: false,
       contextWindow: 32768, maxTokens: 2048, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }],

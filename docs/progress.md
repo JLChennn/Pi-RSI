@@ -17,9 +17,9 @@
 | `npm.cmd install --ignore-scripts --offline=false --fetch-retries=0 --fetch-timeout=30000` | 通过 | 下载慢，约 11 分钟；生成 lockfile |
 | `npm.cmd install --package-lock-only --ignore-scripts --offline` | 通过 | 添加公开 pi-ai 直接依赖后的 lockfile 同步 |
 | `npm.cmd run build` | 通过，退出 0 | TypeScript 检查源码、tests 和 scripts |
-| `npm.cmd test` | **2 文件，34 passed，0 failed** | 最终一轮 duration 4.13s；固定故障、H0、错误形状、Wrapper 安全、取消、JSONL、grader 和配置校验 |
-| `npm.cmd run smoke:sdk` | 通过，退出 0 | 真实 Pi AgentSession + 注册工具直接执行 + JSONL + dispose；**没有推理** |
-| `npm.cmd run demo:agent` | 预检查符合预期，退出 1 | 缺少 PI_RSI_PROVIDER / PI_RSI_MODEL / PI_RSI_API_KEY；未发模型请求 |
+| `npm.cmd test` | **2 文件，38 passed，0 failed** | 配置补充后的最终一轮 duration 43.75s；固定故障、H0、错误形状、Wrapper 安全、取消、JSONL、grader 和配置别名校验 |
+| `npm.cmd run smoke:sdk` | 通过 | 内置模型及 IQuest 自定义 provider 的真实 Pi AgentSession + 注册工具直接执行 + JSONL + dispose；**没有推理** |
+| `npm.cmd run demo:agent` | 预检查符合预期，退出 1 | 当前 IQuest 配置仅缺少 PI_RSI_API_KEY / OPENAI_API_KEY；未发模型请求 |
 | `npm.cmd run benchmark:h0` | 预检查符合预期，退出 1 | 同上；没有真实 E2E summary 或任务成绩 |
 
 tests 中的模拟最终 JSON 仅用于检查 grader，always-retry policy 仅用于检查 Wrapper 防御边界；均不属于正式 H1 或 Agent E2E。
@@ -36,7 +36,7 @@ tests 中的模拟最终 JSON 仅用于检查 grader，always-retry policy 仅�
 | 三类故障 | 已验证（离线） |
 | 内部 retry / 新模型 Tool Call 标识 | 已实现、离线不同 ID / attempt 测试通过；真实模型流待验 |
 | JSONL 保存 | 已验证（单元测试、SDK smoke 实际文件） |
-| 无凭据单元测试 | 34 项通过 |
+| 无凭据单元测试 | 38 项通过 |
 | 有凭据真实 Agent E2E | **未验证：本项目无用户配置模型凭据** |
 | Pi 执行事件订阅及任务最终结果采集 | SDK 类型与代码已核实；实际推理事件流未验证 |
 | 源码地图、架构、学习指南 | 已完成 |
@@ -52,6 +52,8 @@ SDK smoke 的 trace 存在 `experiments/sdk-smoke-*.jsonl`，明确记录 `infer
 5. Node 26 + tsx 显示 `module.register()` 的 DEP0205 警告；命令成功，不影响已验证功能。没有安装或切换 Node 版本。
 
 ## 尚未完成与下一入口
+
+用户补充了 IQuest-Q1 的 base URL 与 Responses 模式。已支持 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `MODEL_NAME` / `OPENAI_API_MODE`，原 `PI_RSI_*` 非空项优先；创建了 Git 忽略的本地 `.env`，密钥保持空。自定义 provider 的离线会话构造已验证，真实 endpoint 请求仍未验证。
 
 真实模型连通性、provider 自定义 endpoint 兼容性、实际 tool-call 参数与事件流、Demo 和三任务 H0 E2E 成绩未验证。配置 `.env` 后先运行 demo，再运行 benchmark，并检查 stopReason / runError / actual service state / trace / summary，而不是仅看命令结束。
 
