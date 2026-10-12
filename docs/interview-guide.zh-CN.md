@@ -4,25 +4,25 @@
 
 ## 一分钟介绍
 
-我做了一个基于 Pi SDK 的 Harness 自改进实验。Coding Agent 通常能修复任务代码，但遇到执行机制的不足，仍要人来改 Harness。我想验证：能不能把真实执行轨迹交给独立 Agent，让它提出影响未来执行的代码修改，再用程序决定是否接受。
+我做了一个基于Pi的Harness自改进实验。Agent能改任务代码，但执行机制通常还要人维护。我把真实轨迹交给独立Evolver，让它只改工具恢复策略，再由隔离验证和独立评测决定是否接受。
 
-我把范围限制在工具失败恢复策略。H0 遇到瞬时错误就停止内部尝试，模型会另发工具调用；Evolver 从轨迹识别这次额外交互，生成 TypeScript Patch，让安全的瞬时读在同一次调用内重试。候选只在禁网、无密钥的 Docker 执行，通过固定安全验证后，再做新旧版本真实模型对照，最后原子切换版本并支持回滚。
+H0遇到瞬时错误会返回模型，由模型再发工具调用；H1在同一次调用内安全重试。候选只在禁网、无密钥Docker执行，版本可以回滚。
 
-在6项任务、每侧两次重复的实验里，工具调用从16降到12，tokens下降约17%，正确处理均12/12，安全没有退化。它证明了一个小而完整的工程闭环，没有证明通用自主进化或统计显著性。
+固定IQuest-Q1下，6任务每侧重复两次，Tool Calls从16降到12，tokens约降17%，正确处理都是12/12，安全未退化。价值是跑通可解释的Harness代码改进闭环，不是通用自主进化。
 
 ## 三分钟介绍：Problem → Insight → Method → Implementation → Evaluation → Result
 
-**Problem。**Agent 的结果由模型和 Harness 共同决定。模型可能知道失败后再试一次，但每次把错误交回模型都会增加交互。现有工作流里，Harness 的这些不足通常靠工程师分析轨迹后修复。
+**Problem。**Agent结果由模型和Harness共同决定。模型知道失败后再试一次，但每次交回模型都会增加交互。执行机制的这些不足通常靠工程师分析轨迹后修复。
 
-**Insight。**Coding Agent 本来就有分析代码和生成修改的能力。可以把真实执行经验变成一个受约束的工程任务，让它改执行机制，而不是让它生成某一道任务的答案。改动会影响之后的新 Session，这才有“自改进”的实际作用。
+**Insight。**Agent已有分析和修改代码的能力。我把真实经验变成受约束的工程任务，让它改影响未来Session的机制，不是生成当前任务答案。
 
-**Method。**我的闭环是 Run、Reflect、Rewrite、Validate、Evaluate、Accept或保留版本，并支持显式Rollback。限定一个纯函数，不改模型、Loop、Wrapper、任务和评分。这样能够解释一次修改为什么有用，也减少不可信修改的权限。
+**Method。**闭环是Run、Reflect、Rewrite、Validate、Evaluate、Accept或保留版本，支持显式Rollback。只改一个纯函数，固定模型、Loop、Wrapper、任务和评分，使因果关系可解释。
 
-**Implementation。**Worker 使用真实 Pi AgentSession，只有 workspace_service 一个工具。Evolver 是独立 Session，没有文件或执行工具，它输出严格 JSON Proposal，由可信程序做精确源码替换、AST检查和独立clone。编译在宿主只是可信静态处理，候选执行在 Docker；宿主保留模型密钥，容器只交换失败结构和retry/stop。Wrapper自己掌握retrySafe和尝试上限，不能被模型参数改写。
+**Implementation。**Worker用真实Pi Session，只有一个业务工具。独立Evolver无工具，输出JSON Proposal，由程序精确替换、检查AST并clone。宿主只编译；候选在禁网无密钥Docker执行。容器只交换失败事实与retry/stop，Wrapper自己掌握安全标志和上限。
 
-**Evaluation。**H0与候选各自创建新Session和独立故障状态。模型、参数、任务、工具权限、预算相同，6个任务重复两次，其中3个验证资源不交给Evolver。判分检查真实service状态、最终JSON、故障确实发生和正常停止；成功与正确处理失败分开。Selector使用预先提交的固定门槛，而不是LLM自评。代码哈希把Proposal、验证、执行和发布连接起来。
+**Evaluation。**两侧用新Session、独立故障状态，相同模型、权限和预算。6任务重复两次，3个验证资源不交给Evolver。程序检查真实状态、最终答案和停止原因，区分业务成功与正确处理失败。Selector按事前固定门槛选择，哈希连接验证、执行和发布。
 
-**Result。**H0的瞬时故障由模型另发调用恢复；H1在同一调用内部恢复。总体Calls16→12、tokens13718→11382，底层仍16次，正确处理12/12，不安全重复写0。成功率未提高，因为H0原本也能恢复；提升是以更少模型交互获得同样结果。时延仅下降约2%，不能强调显著性。系统也真的拒绝过把EACCES当瞬时错误的Patch。版本发布和回滚都有新Worker哈希与行为证据。
+**Result。**H0靠模型另发调用，H1同一调用内恢复。Calls16→12、tokens约降17%，底层仍16次，正确处理12/12、重复写0。收益是同样结果下减少交互；时延约降2%，不宣称显著性。系统实际拒绝过EACCES误重试，接受与回滚都有新Worker的哈希和行为证据。
 
 ## 架构与函数契约
 

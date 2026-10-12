@@ -27,8 +27,9 @@
 | status/rollback离线CLI | PASS，在临时仓库无凭据且PATH无Docker执行，不改变真实主Active |
 | Git证据bytes | 7份原始文件暂存blob与provenance SHA256全部一致；.gitattributes防止行尾转换 |
 | Live缺配置BLOCKED | PASS，子进程退出2，主Manifest字节不变 |
-| Docker全量测试 | 待真实最终记录 |
-| Live真实运行 | 待单次验证记录 |
+| Docker全量测试 | **5文件、104 passed、0失败、0跳过，138.67s** |
+| Live真实运行 | **一次完整真实调用，ACCEPT**；生成/隔离验证/24个配对Pi Session通过；主Manifest不变 |
+| 主rsi:status | Active=H1-2c076349354f、previous=H0，与Phase4前一致 |
 | 文档/图表/敏感数据检查 | 当前67文件、51本地链接，README完整表格与图表匹配，errors=[]；实际key命中0 |
 
 ## 14 项交付清单
@@ -42,12 +43,28 @@
 | Replay无密钥无Docker | PASS，子进程PATH为空且无.env/版本存储 |
 | Replay不冒充Live | PASS，输出明确REPLAY/historical，不写Active |
 | Live复用真实RSI | PASS，demo.ts动态调用同一个rsiOnce |
-| Live不破坏Active | PASS，namespace接受/回滚和BLOCKED测试验证主Manifest字节不变；真实运行记录待补 |
+| Live不破坏Active | PASS，namespace接受/回滚、BLOCKED测试与真实Live的主Manifest前后SHA256相同 |
 | 1分钟/3分钟介绍 | PASS，interview-guide.zh-CN.md |
 | 准确源码路径 | PASS，函数契约表与锁定Pi源码地图 |
 | 清楚的技术问答 | PASS，20问及11项质疑权衡 |
-| 原测试和构建 | PASS，默认回归已通过；Docker最终数量待补 |
-| 无敏感信息泄露 | 待最终Git候选文件与实际key字面值检查 |
+| 原测试和构建 | PASS，默认100 passed+4 skipped；启用Docker后104全通过；build PASS |
+| 无敏感信息泄露 | PASS，当前67文件扫描errors=[]、实际key命中0；旧机器路径历史不随干净发布ZIP交付 |
 | 未新增多余RSI功能 | PASS，仅显示、证据复制、namespace参数与文档 |
 
 图表由 `npm run docs:assets` 可重复生成SVG；本次还使用已有渲染运行时生成 @2x PNG 并目视检查。PNG是展示副本，SVG及源数据是可复现输入。没有为图表增加项目依赖。
+
+## 本次Live证据：独立于README的Phase3主表
+
+- Demo报告：`experiments/demo-ed9f53a6-1c38-4c42-8056-0d8032d8b15b/demo.json`。
+- 真实RSI：`experiments/rsi-2026-10-12T15-12-19-516Z-0e3f2336`。
+- 真实候选：`experiments/evolution-2026-10-12T15-12-31-656Z-c515ad32`，parent=`318dbf9`，验证PASS。
+- 真实配对：`experiments/evaluation-2026-10-12T15-13-55-434Z-d18f7bd8`，正确处理12/12→12/12、业务4/12→4/12、Calls16→12、内部retry0→4、底层16→16、tokens13821→11460、latency40719.175→39388.403ms，重复副作用0，ACCEPT。
+- 仅Demo命名空间激活 `H1-b4213cfb66f6`，previous=H0。主Manifest前后hash均为 `2323da71dac21efa86dd7697842071dd39f77945dff1b858132e5fab6f9206ec`，主Active保持原H1。
+
+只做这一次Live调用，不为了包装追加搜索。README与图表继续使用指定的Phase3历史数据，没有混入新候选数字。费用unknown，两次重复不代表统计显著性。
+
+## 发布方式
+
+当前交付树和最小证据包可用于GitHub展示；License尚待所有者选择。旧12个提交含机器路径，未重写用户历史。干净源码ZIP位于 `experiments/pi-rsi-source.zip`，由最后提交的 `git archive` 生成，不含Git历史、.env、node_modules、upstream或原始实验目录。最终ZIP的hash、成员检查与证据校验记录保存在本地 `experiments/phase4-source-archive-check.json`。
+
+没有创建GitHub远程仓库或推送。可以从干净ZIP建立新的发布仓库，原工作区与历史均保留。14项验收全部PASS，无当前BLOCKED；未实现Context Management或其他新Harness进化模块。

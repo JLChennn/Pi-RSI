@@ -1,6 +1,6 @@
 # Pi-RSI 验收进度：Phase 0 + Phase 1 + Phase 2
 
-更新：2026-10-12（Asia/Shanghai）。Phase 0–3 已实现。Phase 3 已完成真实 IQuest-Q1 配对评测、确定性接受、Active 新 Worker 加载和回滚验证。完整单轮记录与当前版本以 [phase3-validation.md](phase3-validation.md) 为准；根目录 Baseline 源码仍为 H0。
+更新：2026-10-12（Asia/Shanghai）。Phase 0–4 已完成。Phase 3 实现真实闭环，Phase 4 完成中英文交付、真实证据Replay、隔离Live与面试指南，见 [phase4-delivery.md](phase4-delivery.md)。主Active保持H1-2c076349354f；根目录Baseline仍为H0。
 
 ## 实际环境与版本
 
@@ -91,7 +91,7 @@ Phase 2 的结构化 Proposal、单文件 Guard、候选隔离和功能验证见
 
 AST 仅支持小型纯函数子集，有限行为矩阵不能替代完整语义证明。自定义模型价格未知，记录实际 provider token 用量但不伪称目录零成本为免费。Phase 2 候选 Worker 验证无模型推理，Phase 3 真实 Agent E2E 另有实验记录。Docker/依赖镜像不可用时 BLOCKED，不在宿主执行候选。初始模型输出截断记录已保留，Evolver 默认独立 8192-token 预算，可配置最高16384，最多一次格式修复。
 
-Phase 2 历史验收与真实 Diff 见 [phase2-validation.md](phase2-validation.md)。Phase 3 新增 evaluation/policy-runtime、evaluator、selector、version-manager 和 rsi；独立设计见 [evaluator-design.md](evaluator-design.md)，真实验收见 [phase3-validation.md](phase3-validation.md)。Phase 4 未开始。
+Phase 2 历史验收与真实 Diff 见 [phase2-validation.md](phase2-validation.md)。Phase 3 新增 evaluation/policy-runtime、evaluator、selector、version-manager 和 rsi；独立设计见 [evaluator-design.md](evaluator-design.md)，真实验收见 [phase3-validation.md](phase3-validation.md)。
 
 ## Phase 3 最终状态
 
@@ -101,4 +101,12 @@ Phase 2 历史验收与真实 Diff 见 [phase2-validation.md](phase2-validation.
 - ACCEPT后新Worker、显式Rollback后H0和最终新H1的运行时hash/工具行为均有实际探针证据；探针不推理，不能混入E2E统计。
 - 最终build PASS；默认92 passed+4 Docker skipped；启用Docker后**4文件、96 passed、0失败、0跳过，119.10s**。新增分类测试覆盖模型证据不足INCONCLUSIVE。
 - 保留真实EACCES误重试拒绝、8192-token截断及其旧分类缺陷记录；仅修正通用生成约束和异常分类，没有改测试、评分或评测阈值。
-- 当前无BLOCKED；15项逐项验收、源码/编译/配置/Validation hashes与费用unknown说明见Phase3报告。仅完成最小单轮闭环，未开始Phase4。
+- Phase3时点无BLOCKED；15项逐项验收、源码/编译/配置/Validation hashes与费用unknown说明见Phase3报告，当时仅完成最小单轮闭环。
+
+## Phase 4 最终交付
+
+- 英文README、中文README、真实证据包、可重复生成SVG、中文面试指南、Replay/隔离Live。
+- 默认100 passed+4 Docker skipped；全量Docker **104 passed、0失败、0跳过**；build及离线依赖安装通过。
+- 仅执行一次真实Live，完整闭环ACCEPT，独立Demo版本H1-b4213cfb66f6；主Manifest字节保持不变。
+- 14项验收全部PASS；当前文件无私密路径/实际key，保留旧历史并另提供干净源码ZIP。License未擅自选择，未创建远程或推送。
+- 完成Phase4后停止，不扩展其他Harness模块。源码导航和技术权衡见 [面试指南](interview-guide.zh-CN.md)。
