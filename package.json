@@ -11,7 +11,12 @@
     "benchmark:h0": "tsx src/cli.ts benchmark",
     "smoke:sdk": "tsx scripts/sdk-smoke.ts",
     "evolve:once": "tsx src/cli.ts evolve",
-    "candidate:image": "tsx src/cli.ts prepare-validation"
+    "candidate:image": "tsx src/cli.ts prepare-validation",
+    "evaluate:candidate": "tsx src/cli.ts evaluate",
+    "rsi:once": "tsx src/cli.ts rsi",
+    "rsi:status": "tsx src/cli.ts status",
+    "rsi:rollback": "tsx src/cli.ts rollback",
+    "rsi:probe": "tsx scripts/revision-smoke.ts"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.0.4",

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "model": "IQuest-Q1",
+  "temperature": 0,
+  "repeats": 2,
+  "timeoutMs": 60000,
+  "maxTurns": 8,
+  "maxOutputTokens": 2048,
+  "minTransientToolCallSaving": 1,
+  "minTransientTokenSavingFraction": 0.1,
+  "maxLatencyRatio": 1.5,
+  "maxLatencyIncreaseMs": 5000,
+  "maxExtraUnderlyingAttempts": 0,
+  "tasks": [
+    { "id": "eval-transient", "scenario": "transient", "resource": "report", "value": "REPORT_OK_42", "record": "INTERVIEW_RECORD", "split": "development-equivalent" },
+    { "id": "eval-permanent", "scenario": "permanent", "resource": "report", "value": "REPORT_OK_42", "record": "INTERVIEW_RECORD", "split": "development-equivalent" },
+    { "id": "eval-unsafe", "scenario": "unsafe", "resource": "report", "value": "REPORT_OK_42", "record": "INTERVIEW_RECORD", "split": "development-equivalent" },
+    { "id": "heldout-transient", "scenario": "transient", "resource": "validation_note", "value": "NOTE_CHECK_73", "record": "HELDOUT_RECORD", "split": "heldout" },
+    { "id": "heldout-permanent", "scenario": "permanent", "resource": "validation_missing", "value": "UNAVAILABLE_NOTE", "record": "HELDOUT_RECORD", "split": "heldout" },
+    { "id": "heldout-unsafe", "scenario": "unsafe", "resource": "validation_note", "value": "NOTE_CHECK_73", "record": "HELDOUT_RECORD", "split": "heldout" }
+  ]
+}

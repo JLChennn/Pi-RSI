@@ -59,7 +59,8 @@ export async function prepareValidationImage(repoRoot: string) {
   return { available: true as const, imageId };
 }
 
-export async function validateCandidate(repoRoot: string, audit: string, raw: unknown, secrets: string[] = []) {
+export async function validateCandidate(repoRoot: string, audit: string, raw: unknown, secrets: string[] = [],
+  parentPolicy?: { source: string; revisionId: string }) {
   const root = realpathSync(repoRoot);
   const auditReal = realpathSync(audit);
   const rel = relative(join(root, 'experiments'), auditReal);
@@ -67,18 +68,20 @@ export async function validateCandidate(repoRoot: string, audit: string, raw: un
   saveAudit(audit, 'proposal.json', redact(raw, secrets));
   const baselinePath = join(root, POLICY_FILE);
   const before = readFileSync(baselinePath);
+  const policyBefore = parentPolicy?.source ?? before.toString('utf8');
   const beforeStatus = git(root, ['status', '--porcelain']);
   const parent = JSON.parse(readFileSync(join(audit, 'parent.json'), 'utf8')) as { parentCommit: string; baselinePolicyHash: string };
   let status: ValidationStatus = 'FAIL';
   const validation: Record<string, unknown> = { status, parentCommit: parent.parentCommit, staticGuard: 'NOT_RUN',
-    compilation: 'NOT_RUN', invariantTests: 'NOT_RUN', behavior: 'NOT_RUN', baselineUnchanged: false };
+    compilation: 'NOT_RUN', invariantTests: 'NOT_RUN', behavior: 'NOT_RUN', baselineUnchanged: false,
+    parentRevision: parentPolicy?.revisionId ?? 'H0' };
   let proposal: EvolutionProposal | undefined;
   try {
     if (digest(before) !== parent.baselinePolicyHash) throw new Error('Baseline changed after observation');
     proposal = parseProposal(raw);
     if (proposal.decision === 'NO_CHANGE') { status = 'NO_CHANGE'; validation.reason = 'Evolver proposed no change'; }
     else {
-      const changed = applyReplacement(before.toString('utf8'), proposal);
+      const changed = applyReplacement(policyBefore, proposal);
       guardPolicy(before.toString('utf8'), changed); validation.staticGuard = 'PASS';
       const workspace = join(auditReal, 'workspace');
       if (existsSync(workspace)) throw new Error('Candidate workspace already exists');
@@ -104,7 +107,7 @@ export async function validateCandidate(repoRoot: string, audit: string, raw: un
       saveAudit(audit, 'compile.json', redact(compile, secrets));
       if (compile.exitCode) throw new Error('Candidate TypeScript compilation failed');
       validation.compilation = 'PASS';
-      const baselineJs = ts.transpileModule(before.toString('utf8'), {
+      const baselineJs = ts.transpileModule(policyBefore, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
       writeFileSync(join(audit, 'baseline-policy.mjs'), baselineJs);
       const isolation = await prepareValidationImage(root);

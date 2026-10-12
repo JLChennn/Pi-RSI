@@ -4,8 +4,14 @@ import { createHash } from 'node:crypto';
 import { runWorker, type ModelConfig, type WorkerResult } from '../src/agent.js';
 import type { TraceEvent } from '../src/trajectory.js';
 import { WorkspaceService, type Scenario } from './fault-injector.js';
+import type { PolicyBinding } from '../src/evaluation/policy-runtime.js';
 
 export type Task = { id: string; scenario: Exclude<Scenario, 'none'>; prompt: string };
+export async function executeTask(config: ModelConfig, task: Task, directory: string,
+  binding?: PolicyBinding | null, service = new WorkspaceService(task.scenario)) {
+  const { result, trace } = await runWorker(config, service, task.id, task.prompt, join(directory, `${task.id}.jsonl`), binding);
+  return { result, trace, service };
+}
 export function loadTasks(): Task[] {
   const raw: unknown = JSON.parse(readFileSync(new URL('./tasks/h0.json', import.meta.url), 'utf8'));
   if (!Array.isArray(raw) || raw.length !== 3) throw new Error('Expected three H0 tasks');
@@ -63,7 +69,8 @@ export async function runBenchmark(config: ModelConfig, directory: string) {
   for (const task of tasks) {
     const service = new WorkspaceService(task.scenario);
     try {
-      const { result, trace } = await runWorker(config, service, task.id, task.prompt, join(directory, `${task.id}.jsonl`));
+      // This legacy command remains explicitly H0 even after an Active Revision is accepted.
+      const { result, trace } = await executeTask(config, task, directory, null, service);
       const assessment = assess(task, service, result, trace.events);
       trace.record('benchmark_assessment', assessment);
       results.push({ taskId: task.id, scenario: task.scenario, ...assessment });
