@@ -8,7 +8,8 @@ export const MAX_ATTEMPTS = 3;
 const MAX_TOOL_CALLS = 12;
 export const workspaceSchema = Type.Object({
   operation: Type.Union([Type.Literal('read_resource'), Type.Literal('append_record')]),
-  resource: Type.Optional(Type.String()), record: Type.Optional(Type.String()),
+  resource: Type.Optional(Type.String({ description: 'Required for read_resource. Resource name, for example report.' })),
+  record: Type.Optional(Type.String({ description: 'Required for append_record. Exact text to append; use the record field, not resource.' })),
 }, { additionalProperties: false });
 
 export function normalizeFailure(error: unknown): { errorCode: string; message: string } {
@@ -23,7 +24,7 @@ export function createRecoveryTool(adapter: ToolAdapter, trace: TrajectoryCollec
   let toolCalls = 0;
   return {
     name: 'workspace_service', label: 'Controlled workspace service',
-    description: 'Local service. read_resource reads report. append_record appends a record once; a lost response may mean the write committed. Never assume an error means no side effect.',
+    description: 'Local service. Read with {"operation":"read_resource","resource":"report"}. Append with {"operation":"append_record","record":"<text>"}. A lost append response may mean the write committed. Never assume an error means no side effect.',
     parameters: workspaceSchema, executionMode: 'sequential',
     async execute(toolCallId, args: WorkspaceArgs, signal) {
       const base = { toolName: 'workspace_service', toolCallId };

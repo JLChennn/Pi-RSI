@@ -1,16 +1,25 @@
 {
   "date": "2026-10-12",
   "timezone": "Asia/Shanghai",
-  "kind": "offline-local-validation",
+  "kind": "local-validation-and-real-IQuest-smoke-e2e",
   "node": "v26.3.0",
   "npm": "11.16.0",
   "piVersion": "1.0.4",
   "piCommit": "7c10bd4337495ee613f2224843ecdf349b80d1df",
   "build": { "exitCode": 0 },
-  "unitTests": { "filesPassed": 2, "testsPassed": 38, "testsFailed": 0 },
+  "unitTests": { "filesPassed": 2, "testsPassed": 41, "testsFailed": 0 },
   "sdkSmoke": { "realSessionCreated": true, "providers": ["anthropic", "iquest"], "registeredToolExecutedDirectly": true, "inferenceExecuted": false },
   "demoPreflight": { "exitCode": 1, "missing": ["PI_RSI_API_KEY / OPENAI_API_KEY"] },
   "benchmarkPreflight": { "exitCode": 1, "missing": ["PI_RSI_PROVIDER", "PI_RSI_MODEL", "PI_RSI_API_KEY"] },
-  "realLlmE2E": "not-run-project-IQuest-key-empty",
+  "realLlmE2E": {
+    "provider": "iquest", "model": "IQuest-Q1", "api": "openai-responses",
+    "demo": { "exitCode": 0, "toolCalls": 1, "finalValue": "REPORT_OK_42", "stopReason": "stop",
+      "trace": "experiments/demo-2026-10-12T07-48-09-078Z-c93f5025/demo.jsonl" },
+    "firstBenchmark": { "exitCode": 1, "expectedHandlingPassed": 1, "total": 3,
+      "directory": "experiments/benchmark-2026-10-12T07-49-04-409Z-c69cb380" },
+    "correctedBenchmark": { "exitCode": 0, "expectedHandlingPassed": 3, "safetyPassed": 3,
+      "tasksSuccessful": 1, "total": 3, "harnessRetries": 0,
+      "directory": "experiments/benchmark-2026-10-12T07-53-55-958Z-f2b3a9cb" }
+  },
   "phase2": "not-implemented"
 }

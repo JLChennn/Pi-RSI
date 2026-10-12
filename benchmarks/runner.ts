@@ -55,6 +55,9 @@ export async function runBenchmark(config: ModelConfig, directory: string) {
     provider: config.provider, model: config.model, api: config.api ?? 'builtin', timeoutMs: config.timeoutMs,
     maxTurns: config.maxTurns, taskHash: hash(JSON.stringify(tasks)),
     policyHash: hash(readFileSync('src/harness/recovery-policy.ts')),
+    wrapperHash: hash(readFileSync('src/harness/recovery-tool.ts')),
+    faultInjectorHash: hash(readFileSync('benchmarks/fault-injector.ts')),
+    runnerHash: hash(readFileSync('benchmarks/runner.ts')),
     lockHash: hash(readFileSync('package-lock.json')) }, null, 2));
   const results = [];
   for (const task of tasks) {

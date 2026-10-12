@@ -68,3 +68,5 @@ Benchmark 分别报告任务成功、预期错误处理、安全，以及 LLM �
 - [验收进度](docs/progress.md)：实际命令、证据、未完成项。
 
 从 `main → runWorker → createWorker → createAgentSession → tool.execute → decideRecovery → trace.record → assess` 阅读。下一阶段仅在用户确认后开发独立 Evolver，修改目标限定 recovery-policy.ts；本阶段完成后停止。
+
+真实验证：IQuest-Q1 Demo 通过；修正首次 E2E 发现的故障序列计数缺陷后，三场景预期处理 3/3、安全 3/3。瞬时读取由模型另发调用恢复，H0 内部重试仍为 0；另两个场景正确报告失败/未知。全量离线测试 41 项通过。原始失败与成功运行均保留，详情见 [真实基线报告](docs/live-baseline.md)。

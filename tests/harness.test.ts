@@ -57,6 +57,24 @@ describe('H0 and deterministic fault injection', () => {
     await expect(service.execute({ operation: 'append_record', record: '' })).rejects.toMatchObject({ code: 'EINVAL' });
     expect(service.records).toHaveLength(0);
   });
+  it('invalid append calls cannot consume the first committed-write response loss', async () => {
+    const service = new WorkspaceService('unsafe');
+    await expect(service.execute({ operation: 'append_record' })).rejects.toMatchObject({ code: 'EINVAL' });
+    await expect(service.execute({ operation: 'append_record', record: 'INTERVIEW_RECORD' })).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(service.records).toEqual(['INTERVIEW_RECORD']);
+  });
+  it('a read cannot consume the first unsafe append fault', async () => {
+    const service = new WorkspaceService('unsafe');
+    await service.execute({ operation: 'read_resource', resource: 'report' });
+    await expect(service.execute({ operation: 'append_record', record: 'INTERVIEW_RECORD' })).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(service.records).toHaveLength(1);
+  });
+  it('missing read resource is a parameter error and does not consume transient fault', async () => {
+    const service = new WorkspaceService('transient');
+    await expect(service.execute({ operation: 'read_resource' })).rejects.toMatchObject({ code: 'EINVAL' });
+    await expect(service.execute({ operation: 'read_resource', resource: 'report' })).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect((await service.execute({ operation: 'read_resource', resource: 'report' })).ok).toBe(true);
+  });
 });
 describe('fixed Wrapper safety boundaries (adversarial policies, not an H1 implementation)', () => {
   const alwaysRetry = () => ({ action: 'retry' as const });
