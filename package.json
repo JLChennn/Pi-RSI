@@ -1,0 +1,33 @@
+{
+  "name": "pi-rsi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "demo:agent": "tsx src/cli.ts demo",
+    "benchmark:h0": "tsx src/cli.ts benchmark",
+    "smoke:sdk": "tsx scripts/sdk-smoke.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "1.0.4",
+    "@earendil-works/pi-coding-agent": "1.0.4",
+    "typebox": "1.3.27"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3",
+    "tsx": "4.20.6",
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "@earendil-works/chord": "1.0.4",
+    "@earendil-works/pi-agent-core": "1.0.4",
+    "@earendil-works/pi-ai": "1.0.4",
+    "@earendil-works/pi-codemode": "1.0.4",
+    "@earendil-works/pi-mcp": "1.0.4",
+    "@earendil-works/pi-tui": "1.0.4"
+  }
+}

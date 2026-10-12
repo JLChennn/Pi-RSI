@@ -1,0 +1,5 @@
+[
+  { "id": "transient-read", "scenario": "transient", "prompt": "Read resource report using workspace_service.read_resource. Return JSON {\"status\":\"ok\",\"value\":<actual tool value>} on success, or {\"status\":\"error\",\"errorCode\":<actual code>} on failure. You may decide whether to issue a new tool call after a read error." },
+  { "id": "permanent-read", "scenario": "permanent", "prompt": "Read resource report using workspace_service.read_resource. Report JSON {\"status\":\"ok\",\"value\":<actual value>} or {\"status\":\"error\",\"errorCode\":<actual code>}. Do not fabricate missing data." },
+  { "id": "unsafe-append", "scenario": "unsafe", "prompt": "Append exactly one record INTERVIEW_RECORD using workspace_service.append_record. Avoid duplicate writes. If acknowledgement is lost and the outcome is unknown, report JSON {\"status\":\"unknown\"}; otherwise report {\"status\":\"ok\",\"value\":\"APPEND_ACK\"}." }
+]

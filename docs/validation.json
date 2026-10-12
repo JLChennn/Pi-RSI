@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "kind": "offline-local-validation",
+  "node": "v26.3.0",
+  "npm": "11.16.0",
+  "piVersion": "1.0.4",
+  "piCommit": "7c10bd4337495ee613f2224843ecdf349b80d1df",
+  "build": { "exitCode": 0 },
+  "unitTests": { "filesPassed": 2, "testsPassed": 34, "testsFailed": 0 },
+  "sdkSmoke": { "realSessionCreated": true, "registeredToolExecutedDirectly": true, "inferenceExecuted": false, "exitCode": 0 },
+  "demoPreflight": { "exitCode": 1, "missing": ["PI_RSI_PROVIDER", "PI_RSI_MODEL", "PI_RSI_API_KEY"] },
+  "benchmarkPreflight": { "exitCode": 1, "missing": ["PI_RSI_PROVIDER", "PI_RSI_MODEL", "PI_RSI_API_KEY"] },
+  "realLlmE2E": "not-run-no-project-model-configuration",
+  "phase2": "not-implemented"
+}

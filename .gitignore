@@ -1,0 +1,9 @@
+node_modules/
+dist/
+upstream/
+.pi-rsi/
+.env
+.env.*
+!.env.example
+experiments/*
+!experiments/.gitkeep
