@@ -11,7 +11,7 @@ import { TrajectoryCollector } from './trajectory.js';
 
 export type ModelConfig = { provider: string; model: string; apiKey: string;
   api?: 'openai-responses' | 'openai-completions' | 'anthropic-messages'; baseUrl?: string;
-  timeoutMs: number; maxTurns: number };
+  timeoutMs: number; maxTurns: number; maxOutputTokens?: number };
 export function readModelConfig(loadFile = true): ModelConfig {
   if (loadFile && existsSync('.env')) loadEnvFile('.env');
   const value = (name: string) => process.env[name]?.trim() || undefined;
@@ -54,7 +54,7 @@ export async function createConfiguredSession(config: ModelConfig, manager: Sess
     // Placeholder auth reference; the effective key is supplied by the runtime overlay below.
     apiKey: 'PI_RSI_API_KEY',
     models: [{ id: config.model, name: config.model, input: ['text'], reasoning: false,
-      contextWindow: 32768, maxTokens: 2048, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }],
+      contextWindow: 32768, maxTokens: config.maxOutputTokens ?? 2048, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }],
   });
   await runtime.setRuntimeApiKey(config.provider, config.apiKey);
   const model = runtime.getModel(config.provider, config.model);
