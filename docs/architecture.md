@@ -40,7 +40,7 @@ flowchart TD
 
 ## 重试与安全
 
-H0 对每次错误都返回 Stop。Wrapper 可以支持未来 retry decision，但当前生产入口始终用 H0。测试中的 always-retry 函数只是验证安全上限的对抗输入，不是 H1。
+根目录 H0 对每次错误都返回 Stop。Phase 3 Worker 默认读取 Active Revision，并把容器 Policy 接口注入原有 Wrapper。测试中的 always-retry 函数只是验证安全上限的对抗输入，不是模型生成的 H1。
 
 `retrySafe` 只由受信 adapter 计算：read 为 true，append 为 false；工具参数 schema 不接受 retrySafe。Wrapper 在 policy 调用前保存该值，并冻结 failure 对象；无论 policy 返回什么，最多 3 次底层尝试，写操作不会自动重试。每个任务最多 12 次工具调用，Worker 最多默认 8 个模型轮次且默认 60 秒超时。
 
@@ -82,4 +82,30 @@ flowchart TD
     Proposal -->|NO_CHANGE 或拒绝| Audit
 ```
 
-Baseline 原有 41 项测试完整保留；5 项 H0 Stop oracle 不适用于改变该行为的候选。候选执行其余 36 项不变约束，并额外验证行为变化。没有自动合并候选，没有多轮 RSI；详细边界见 evolver-design.md。
+Baseline 原有 41 项测试完整保留；5 项 H0 Stop oracle 不适用于改变该行为的候选。候选执行其余 36 项不变约束，并额外验证行为变化。Phase 3 接受只切换版本指针；详细边界见 evolver-design.md。
+
+## Phase 3 完整闭环
+
+```mermaid
+flowchart TD
+    Active[Active Revision: immutable policy snapshot] --> Dev[3 development tasks: fresh Pi sessions]
+    Dev --> Facts[real JSONL and task state]
+    Facts --> E[Evolver: no tools, current source only]
+    E --> V[Patch Guard / compile / Docker invariants]
+    V --> Eval[Evaluator: 6 tasks x 2 repeats, paired sessions]
+    Active --> Eval
+    Eval --> S[Selector: validity / safety / outcome / efficiency]
+    S -->|ACCEPT| P[atomic JSON pointer switch]
+    S -->|REJECT or INCONCLUSIVE| Keep[retain Active and audit reasons]
+    P --> New[default new Worker loads new snapshot]
+    P --> Roll[explicit rollback pointer]
+    Roll --> New
+    Host[trusted host Pi + model credentials] --> RPC[bounded failure input and action output]
+    RPC --> Docker[network-none container: policy only, no key]
+```
+
+`executeTask` 复用原 Runner；Evaluator 每侧创建独立 WorkspaceService 与新 Session，故障序列不会相互消耗。源码只经过可信 TypeScript 编译器转译，宿主不 import 候选。H0/H1 都使用 Docker 接口，防止比较两种不同执行边界。候选容器只挂载两个只读文件，不挂载仓库、凭据或 Docker socket；CPU、内存、进程数和请求时间均受限。
+
+`assessEvaluation` 独立计算版本无关正确性，不套用 H0 的“内部重试必须为零”规则。计数来自真实 Pi tool start、Wrapper attempt 和 service.calls。Selector 的输入、配置、源码/编译哈希、Validation 哈希、容器 attestation、JSONL 和最终评测都保留。切换前重新校验这些产物；版本损坏时安全失败，不偷偷退回根目录策略。
+
+Version Manager 在锁内写临时 JSON 后 rename，指针发布前准备完整快照；拒绝只追加历史。回滚指向 previous，并将 previous 更新为其 parent，重复回到 H0 后不会再次向前切换。旧 Session 固定持有原 Binding，新 Session 才读取新的指针。

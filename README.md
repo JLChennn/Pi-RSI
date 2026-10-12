@@ -1,6 +1,6 @@
 # Pi-RSI
 
-面试学习项目：Failure-Driven Harness Evolution 的 **Phase 0 + Phase 1 + Phase 2**。真实 Pi Worker、H0 工具策略、三类本地故障、JSONL 与基线评测；独立 Evolver 从真实经验生成单文件候选并隔离验证。尚无正式性能 Evaluator / Accept-Rollback / 多轮 RSI。
+面试学习项目：Failure-Driven Harness Evolution 的 **Phase 0–3**。真实 Pi Worker 遇到工具故障，独立 Evolver 生成单文件候选，Docker 验证与真实模型配对评测后，由确定性 Selector 决定是否切换 Active Revision。支持自动执行一轮 RSI 和显式回滚。
 
 Pi 上游固定为官方 `earendil-works/pi`，`v1.0.4`，commit `7c10bd4337495ee613f2224843ecdf349b80d1df`。版本与 npm gitHead 见 [docs/pi-version.json](docs/pi-version.json)，源码入口见 [docs/pi-source-map.md](docs/pi-source-map.md)。项目根目录直接使用当前 `Pi-RSI`，避免无意义再套一层子目录；npm 包名 `pi-rsi`。
 
@@ -67,7 +67,29 @@ Benchmark 分别报告任务成功、预期错误处理、安全，以及 LLM �
 - [学习路线](docs/learning-guide.md)：十个问题定位源码。
 - [验收进度](docs/progress.md)：实际命令、证据、未完成项。
 
-从 `main → runWorker → createWorker → createConfiguredSession → createAgentSession → tool.execute → decideRecovery → trace.record → assess` 阅读。Phase 2 的下一阶段为独立 Evaluator + Accept/Rollback，本阶段完成后停止。
+从 `main → rsiOnce → executeTask/runWorker → evolveOnce → validateCandidate → evaluateCandidate → selectCandidate → applySelection` 阅读。Worker 的显式 Policy Binding 通过容器接口运行候选；默认 Worker 读取 Active Revision。只做一轮，不开展多候选搜索。
+
+## Phase 3：评测与版本切换
+
+需要可用的 Docker Engine，以及本地 `.env` 中的 IQuest-Q1 配置。
+
+```powershell
+npm.cmd run evaluate:candidate -- --candidate evolution-2026-10-12T08-56-28-617Z-fffbb308 --smoke
+npm.cmd run evaluate:candidate -- --candidate evolution-2026-10-12T08-56-28-617Z-fffbb308 --activate
+npm.cmd run rsi:once
+npm.cmd run rsi:status
+npm.cmd run rsi:probe
+npm.cmd run rsi:rollback
+$env:PI_RSI_TEST_DOCKER='1'
+npm.cmd test
+Remove-Item Env:PI_RSI_TEST_DOCKER
+```
+
+`evaluate:candidate` 默认只评测；`--activate` 仅在 ACCEPT 时切换。`--smoke` 每侧 6 个任务，不具备激活资格。正式配置固定为 6 个任务 × 2 次重复 × 2 个策略，共 24 个真实 Session；3 个独立验证任务不送给 Evolver。`rsi:once` 自动执行开发任务、生成、验证、评测、选择与激活。
+
+`.pi-rsi/revisions.json` 管理 Active/previous 和历史，源码快照存于 `.pi-rsi/revisions/`；目录被 Git 忽略。接受不会覆盖根目录 H0 Policy。`rsi:probe` 只在新 SDK Worker 中直接调用工具，**不进行模型推理**；用于证明运行时版本切换。`benchmark:h0` 始终显式使用原始 H0。
+
+隔离边界、固定门槛和计数定义见 [evaluator-design.md](docs/evaluator-design.md)。真实实验、测试及逐项验收见 [phase3-validation.md](docs/phase3-validation.md)。正式费用未知记为 null/unknown；两次重复只是小规模工程证据，不能代表统计显著性或广泛 Benchmark 能力。
 
 ## Phase 2：真实 Evolver 与隔离候选
 

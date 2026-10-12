@@ -23,11 +23,20 @@ export async function rsiOnce(config: ModelConfig) {
     purpose: 'development-only; evaluation tasks and assertions are never sent to Evolver' });
   const results = [];
   for (const task of loadTasks()) {
-    const binding = await openPolicyBinding(root, identity(root, active), join(development, `runtime-${task.id}`));
-    const { result, trace, service } = await executeTask(workerConfig, task, development, binding);
-    // Legacy grading is used only as development evidence, never H1 evaluation safety.
-    const assessment = assess(task, service, result, trace.events);
-    trace.record('benchmark_assessment', assessment); results.push({ taskId: task.id, scenario: task.scenario, ...assessment });
+    let binding;
+    try {
+      binding = await openPolicyBinding(root, identity(root, active), join(development, `runtime-${task.id}`));
+      const { result, trace, service } = await executeTask(workerConfig, task, development, binding);
+      // Legacy grading is used only as development evidence, never H1 evaluation safety.
+      const assessment = assess(task, service, result, trace.events);
+      trace.record('benchmark_assessment', assessment); results.push({ taskId: task.id, scenario: task.scenario, ...assessment });
+      if (result.runError) throw new Error('Development model run incomplete');
+    } catch {
+      saveAudit(development, 'summary.json', { kind: 'incomplete-development', results });
+      saveAudit(audit, 'outcome.json', { outcome: 'INCONCLUSIVE', active: active.revisionId,
+        reason: 'Development runtime/model evidence incomplete; Evolver was not invoked' });
+      return { audit, outcome: 'INCONCLUSIVE' };
+    } finally { binding?.close(); }
   }
   saveAudit(development, 'summary.json', { kind: 'real-pi-llm-e2e', policy: active.revisionId, results });
   console.log('Development trajectories collected; invoking existing independent Evolver.');

@@ -38,9 +38,9 @@ Pi `executeToolCalls → prepareToolCall → executePreparedToolCall → wrapToo
 
 唯一目标 `src/harness/recovery-policy.ts::decideRecovery`。Phase 2 已实现 `evolve:once`：独立 Evolver 根据失败及低效轨迹生成结构化替换，由程序在独立候选 clone 中应用；不能改 wrapper、adapter、fault sequence、测试、任务或 grader。候选经过 AST、编译与隔离验证，不自动成为当前策略。Baseline 仍为 H0。
 
-## 10. 为什么这是 Harness 级 RSI 的准备工作？
+## 10. 为什么这是 Harness 级 RSI？
 
-Phase 2 改的是候选 Worker 会加载的程序逻辑，不是改一个任务答案、prompt、模型权重或上下文内容。已验证真实 Evolver 生成的候选改变同一 toolCallId 内的尝试行为。完整 RSI 仍需要独立 Evaluate → Accept/Rollback 和后续任务运行闭环，当前还没有这些能力。
+Evolver 改的是候选 Worker 会加载的程序逻辑，不是任务答案、prompt、模型权重或上下文内容。Phase 3 将真实任务轨迹、真实代码 Patch、独立 E2E 评测、确定性接受与新 Worker 加载连接起来；回滚可恢复旧行为。没有修改 Pi Agent Loop。
 
 建议口述：模型通过 Pi 决定“调用什么”，Wrapper 决定同一个调用失败后“是否再次执行”。Policy 可进化，安全边界与评测保持固定。真实提升必须独立比较新旧版本，且区分模型恢复和 Harness 恢复。
 
@@ -54,3 +54,16 @@ Phase 2 改的是候选 Worker 会加载的程序逻辑，不是改一个任务�
 6. `scripts/validate-candidate.ts`：source/compiled hash 如何对应实际 import；新 Session 同一调用内 attempt 1/2 如何证明候选已加载。
 
 真实案例和限制见 [phase2-validation.md](phase2-validation.md)，设计见 [evolver-design.md](evolver-design.md)。
+
+## Phase 3 最值得阅读的 8 个函数
+
+1. `rsi.ts::rsiOnce`：从 Active 开始，只把开发轨迹交给 Evolver，串联单轮与提前结束分支。
+2. `agent.ts::createWorker`：每次建立真实 Pi Session；默认读取 Active，也支持显式 Binding。`null` 表示明确使用原 H0。
+3. `evaluation/policy-runtime.ts::openPolicyBinding`：源码、编译、运行时哈希对应；Docker 只执行 Policy，宿主负责模型调用。
+4. `evaluation/evaluator.ts::evaluateCandidate`：固定配置、独立故障状态、重复配对与顺序交叉；保存全部 E2E 证据。
+5. `evaluation/evaluator.ts::assessEvaluation`：业务成功与正确处理失败分开，内部重试不算新的模型工具调用。
+6. `evaluation/selector.ts::selectCandidate`：四道 Gate；证据缺失返回 INCONCLUSIVE，不能激活。
+7. `evolution/version-manager.ts::applySelection`：重放选择、核对哈希、准备快照、原子发布指针；REJECT 不改变 Active。
+8. `evolution/version-manager.ts::rollback`：恢复 previous，保留所有历史；到 H0 后重复操作幂等。
+
+面试时可以沿着一个工具调用 ID 讲：H0 的 attempt=1 失败后返回模型，模型另发 ID；H1 在相同 ID 下 attempt=2 成功。两者底层仍执行两次，但 H1 少一次模型工具调用和相应模型交互。然后解释独立评测为什么有权决定接受，以及实际源码哈希怎样证明新 Worker 已生效。
