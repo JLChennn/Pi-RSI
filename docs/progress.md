@@ -1,6 +1,6 @@
 # Pi-RSI 验收进度：Phase 0 + Phase 1 + Phase 2
 
-更新：2026-10-12（Asia/Shanghai）。Phase 0/1 真实 Worker 与 H0 基线已验证；Phase 2 已有真实 IQuest-Q1 生成候选通过静态、编译、容器回归和新 Worker 加载验证。Baseline 仍为 H0，没有开始 Phase 3，也没有宣称完成完整 RSI。
+更新：2026-10-12（Asia/Shanghai）。Phase 0–3 已实现。Phase 3 已完成真实 IQuest-Q1 配对评测、确定性接受、Active 新 Worker 加载和回滚验证。完整单轮记录与当前版本以 [phase3-validation.md](phase3-validation.md) 为准；根目录 Baseline 源码仍为 H0。
 
 ## 实际环境与版本
 
@@ -51,13 +51,13 @@ SDK smoke 的 trace 存在 `experiments/sdk-smoke-*.jsonl`，明确记录 `infer
 4. Windows sandbox 下 Vite/Vitest 对临时缓存 rename 产生 EPERM；使用获准的本项目本地验证运行完成测试。该错误不代表工具策略失败；没有通过修改业务代码掩盖。
 5. Node 26 + tsx 显示 `module.register()` 的 DEP0205 警告；命令成功，不影响已验证功能。没有安装或切换 Node 版本。
 
-## 尚未完成与下一入口
+## Phase 2 时点的历史与 Phase 3 入口
 
 用户补充了 IQuest-Q1 配置并自行填入 key。已支持 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `MODEL_NAME` / `OPENAI_API_MODE`，原 `PI_RSI_*` 非空项优先；本地 `.env` 被 Git 忽略，未输出或提交密钥。真实 endpoint 已通过 Demo 与三场景验证。
 
-Evolver 与受控候选功能验证已完成；独立性能评估与接受/回滚尚未完成，也没有正式多轮统计实验。真实 H0 结果与首轮问题见 [live-baseline.md](live-baseline.md)；需要检查 stopReason / runError / actual service state / trace / summary，而不是仅看命令结束。
+Phase 2 时只有受控候选功能验证，尚无性能评估与接受/回滚。Phase 3 已补全这两部分；没有开展正式多轮统计实验。真实 H0 历史与首轮问题见 [live-baseline.md](live-baseline.md)；需要检查 stopReason / runError / actual service state / trace / summary，而不是仅看命令结束。
 
-Phase 2 的结构化 Proposal、单文件 Guard、候选隔离和功能验证现已实现，见下。独立统计比较、Accept/Rollback 和默认未来最多 3 轮的多轮 RSI 仍属于 Phase 3，尚未实现。
+Phase 2 的结构化 Proposal、单文件 Guard、候选隔离和功能验证见下。Phase 3 只执行独立评测和单轮编排，不实现多轮搜索。
 
 ## Phase 2 当前状态
 
@@ -89,6 +89,16 @@ Phase 2 的结构化 Proposal、单文件 Guard、候选隔离和功能验证现
 
 ## Phase 2 遗留限制
 
-AST 仅支持小型纯函数子集，有限行为矩阵不能替代完整语义证明。自定义模型价格未知，记录实际 provider token 用量但不伪称目录零成本为免费。候选 Worker 验证无模型推理，正式 Agent E2E 比较尚未做。Docker/依赖镜像不可用时 BLOCKED，不在宿主执行候选。初始模型输出截断记录已保留，Evolver 现在使用独立 8192-token 默认预算，最多一次格式修复。
+AST 仅支持小型纯函数子集，有限行为矩阵不能替代完整语义证明。自定义模型价格未知，记录实际 provider token 用量但不伪称目录零成本为免费。Phase 2 候选 Worker 验证无模型推理，Phase 3 真实 Agent E2E 另有实验记录。Docker/依赖镜像不可用时 BLOCKED，不在宿主执行候选。初始模型输出截断记录已保留，Evolver 默认独立 8192-token 预算，可配置最高16384，最多一次格式修复。
 
-下一入口是读取 PASS 的 validation.json 和对应 parent/diff/hashes 接入独立 Evaluator，再实施 Accept/Rollback。本阶段不开展这些工作。完整验收与真实 Diff 见 [phase2-validation.md](phase2-validation.md)。
+Phase 2 历史验收与真实 Diff 见 [phase2-validation.md](phase2-validation.md)。Phase 3 新增 evaluation/policy-runtime、evaluator、selector、version-manager 和 rsi；独立设计见 [evaluator-design.md](evaluator-design.md)，真实验收见 [phase3-validation.md](phase3-validation.md)。Phase 4 未开始。
+
+## Phase 3 最终状态
+
+- 真实原候选正式E2E与新自动RSI候选正式E2E均ACCEPT；每次6任务×2重复×2策略，共24个真实Pi/IQuest Session。
+- 完整RSI目录：`experiments/rsi-2026-10-12T12-04-29-750Z-20447277`。当前Active为`H1-2c076349354f`，previous为H0。
+- 本轮正确处理12/12，业务成功4/12（全部瞬时任务4/4）；Calls16→12，internal retries0→4，底层尝试16→16，tokens13718→11382，latency总和40225.217→39414.379ms，重复副作用0。
+- ACCEPT后新Worker、显式Rollback后H0和最终新H1的运行时hash/工具行为均有实际探针证据；探针不推理，不能混入E2E统计。
+- 最终build PASS；默认92 passed+4 Docker skipped；启用Docker后**4文件、96 passed、0失败、0跳过，119.10s**。新增分类测试覆盖模型证据不足INCONCLUSIVE。
+- 保留真实EACCES误重试拒绝、8192-token截断及其旧分类缺陷记录；仅修正通用生成约束和异常分类，没有改测试、评分或评测阈值。
+- 当前无BLOCKED；15项逐项验收、源码/编译/配置/Validation hashes与费用unknown说明见Phase3报告。仅完成最小单轮闭环，未开始Phase4。

@@ -87,6 +87,8 @@ Remove-Item Env:PI_RSI_TEST_DOCKER
 
 `evaluate:candidate` 默认只评测；`--activate` 仅在 ACCEPT 时切换。`--smoke` 每侧 6 个任务，不具备激活资格。正式配置固定为 6 个任务 × 2 次重复 × 2 个策略，共 24 个真实 Session；3 个独立验证任务不送给 Evolver。`rsi:once` 自动执行开发任务、生成、验证、评测、选择与激活。
 
+Evolver 默认8192输出tokens，截断时不能激活；本次成功完整轮次通过进程环境设置 `PI_RSI_EVOLVER_MAX_TOKENS=16384`，实际输出4403 tokens。该变量仅控制生成预算，两侧评测预算保持相同且固定。再次评测比较当前Active；若要复现H0对照，先rollback并确认status。
+
 `.pi-rsi/revisions.json` 管理 Active/previous 和历史，源码快照存于 `.pi-rsi/revisions/`；目录被 Git 忽略。接受不会覆盖根目录 H0 Policy。`rsi:probe` 只在新 SDK Worker 中直接调用工具，**不进行模型推理**；用于证明运行时版本切换。`benchmark:h0` 始终显式使用原始 H0。
 
 隔离边界、固定门槛和计数定义见 [evaluator-design.md](docs/evaluator-design.md)。真实实验、测试及逐项验收见 [phase3-validation.md](docs/phase3-validation.md)。正式费用未知记为 null/unknown；两次重复只是小规模工程证据，不能代表统计显著性或广泛 Benchmark 能力。
@@ -115,7 +117,7 @@ Evolver 使用现有本地模型配置，无文件/命令工具。`PI_RSI_EVOLVE
 
 候选动态验证必须使用禁网、无密钥、只读挂载、降权的 Docker 容器；不可用时状态 BLOCKED（退出 2），没有宿主执行后备。AST/编译/行为验证失败退出 1；PASS 或 NO_CHANGE 退出 0。可信依赖镜像保留作复用缓存，单次运行容器会清理。
 
-原有 41 项测试保持不变，在 Baseline 完整运行。候选执行其中 36 项固定约束，排除 5 项专属 H0 Stop oracle，再执行可信行为探针。不能将候选结果表述为通过全部原 H0 oracle，也不能将本阶段功能验证表述为性能提升证明。
+原有 41 项测试保持不变，在 Baseline 完整运行。候选执行其中 36 项固定约束，排除 5 项专属 H0 Stop oracle，再执行可信行为探针。不能将候选结果表述为通过全部原 H0 oracle，也不能将 Phase 2 功能验证表述为性能提升证明；性能证据来自独立 Phase 3 E2E。
 
 详见 [Evolver 设计](docs/evolver-design.md)和[Phase 2 验收](docs/phase2-validation.md)。
 
