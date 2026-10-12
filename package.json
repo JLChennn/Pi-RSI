@@ -9,7 +9,9 @@
     "test": "vitest run",
     "demo:agent": "tsx src/cli.ts demo",
     "benchmark:h0": "tsx src/cli.ts benchmark",
-    "smoke:sdk": "tsx scripts/sdk-smoke.ts"
+    "smoke:sdk": "tsx scripts/sdk-smoke.ts",
+    "evolve:once": "tsx src/cli.ts evolve",
+    "candidate:image": "tsx src/cli.ts prepare-validation"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.0.4",

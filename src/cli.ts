@@ -4,11 +4,28 @@ import { runWorker, readModelConfig } from './agent.js';
 import { WorkspaceService } from '../benchmarks/fault-injector.js';
 import { runBenchmark } from '../benchmarks/runner.js';
 import { redact } from './trajectory.js';
+import { evolveOnce } from './evolver.js';
+import { prepareValidationImage } from './evolution/candidate.js';
 
 export async function main() {
   const command = process.argv[2];
-  if (!['demo', 'benchmark'].includes(command ?? '')) throw new Error('Usage: npm run demo:agent | npm run benchmark:h0');
+  if (command === 'prepare-validation') {
+    const result = await prepareValidationImage(process.cwd());
+    console.log(JSON.stringify(result, null, 2));
+    if (!result.available) process.exitCode = 2;
+    return;
+  }
+  if (!['demo', 'benchmark', 'evolve'].includes(command ?? '')) throw new Error('Usage: npm run demo:agent | npm run benchmark:h0 | npm run evolve:once -- --run <benchmark-directory>');
   const config = readModelConfig();
+  if (command === 'evolve') {
+    const args = process.argv.slice(3);
+    if (args.length && (args.length !== 2 || args[0] !== '--run' || !args[1])) throw new Error('Usage: evolve --run <benchmark-directory>');
+    const result = await evolveOnce(config, args[1]);
+    console.log(JSON.stringify(result, null, 2));
+    if (result.status === 'FAIL') process.exitCode = 1;
+    if (result.status === 'BLOCKED') process.exitCode = 2;
+    return;
+  }
   const directory = join('experiments', `${command}-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`);
   if (command === 'demo') {
     const { result, trace } = await runWorker(config, new WorkspaceService('none'), 'demo',

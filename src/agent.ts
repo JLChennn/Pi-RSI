@@ -3,6 +3,7 @@ import { loadEnvFile } from 'node:process';
 import { existsSync } from 'node:fs';
 import { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager,
   type AgentSession } from '@earendil-works/pi-coding-agent';
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { InMemoryCredentialStore } from '@earendil-works/pi-ai';
 import { WorkspaceService } from '../benchmarks/fault-injector.js';
 import { createRecoveryTool } from './harness/recovery-tool.js';
@@ -44,7 +45,8 @@ export function readModelConfig(loadFile = true): ModelConfig {
 }
 
 /** Real SDK construction, independent of network inference. No user-global auth/config files. */
-export async function createWorker(config: ModelConfig, service: WorkspaceService, taskId: string, tracePath: string) {
+export async function createConfiguredSession(config: ModelConfig, manager: SessionManager,
+  customTools: ToolDefinition[], systemPrompt: string) {
   const runtime = await ModelRuntime.create({ credentials: new InMemoryCredentialStore(), modelsPath: null,
     refreshOnCreate: false, allowModelNetwork: false });
   if (config.api && config.baseUrl) runtime.registerProvider(config.provider, {
@@ -57,21 +59,26 @@ export async function createWorker(config: ModelConfig, service: WorkspaceServic
   await runtime.setRuntimeApiKey(config.provider, config.apiKey);
   const model = runtime.getModel(config.provider, config.model);
   if (!model) throw new Error('Configured model is absent from the pinned Pi catalog. Configure API + BASE_URL for a custom model.');
-  const manager = SessionManager.inMemory(process.cwd());
-  const trace = new TrajectoryCollector(tracePath, manager.getSessionId(), taskId, [config.apiKey]);
   const settings = SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false,
     provider: { maxRetries: 0 } }, cacheWarming: 'off', enableAnalytics: false, enableInstallTelemetry: false });
   const agentDir = join(process.cwd(), '.pi-rsi');
   const loader = new DefaultResourceLoader({ cwd: process.cwd(), agentDir, settingsManager: settings,
     noExtensions: true, disabledBuiltinExtensions: ['mcp', 'codemode'], noSkills: true,
     noPromptTemplates: true, noThemes: true, noContextFiles: true,
-    systemPrompt: 'Use only workspace_service for the controlled task. Report only JSON as specified by the user. A tool error is not proof that a write did not commit. Never invent a successful tool result.' });
+    systemPrompt });
+  await loader.reload();
+  return createAgentSession({ cwd: process.cwd(), agentDir,
+    modelRuntime: runtime, model, thinkingLevel: 'off', resourceLoader: loader,
+    settingsManager: settings, sessionManager: manager, tools: customTools.map(tool => tool.name), customTools });
+}
+
+export async function createWorker(config: ModelConfig, service: WorkspaceService, taskId: string, tracePath: string) {
+  const manager = SessionManager.inMemory(process.cwd());
+  const trace = new TrajectoryCollector(tracePath, manager.getSessionId(), taskId, [config.apiKey]);
   try {
-    await loader.reload();
-    const { session, extensionsResult } = await createAgentSession({ cwd: process.cwd(), agentDir,
-      modelRuntime: runtime, model, thinkingLevel: 'off', resourceLoader: loader,
-      settingsManager: settings, sessionManager: manager, tools: ['workspace_service'],
-      customTools: [createRecoveryTool(service, trace)] });
+    const { session, extensionsResult } = await createConfiguredSession(config, manager,
+      [createRecoveryTool(service, trace)],
+      'Use only workspace_service for the controlled task. Report only JSON as specified by the user. A tool error is not proof that a write did not commit. Never invent a successful tool result.');
     const active = session.getActiveToolNames();
     if (active.length !== 1 || active[0] !== 'workspace_service' || extensionsResult.errors.length)
       { session.dispose(); throw new Error('Unexpected Worker tool loadout or extension loading error.'); }
